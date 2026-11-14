@@ -1,0 +1,97 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'core/theme/app_theme.dart';
+import 'features/auth/otp_verification_screen.dart';
+import 'features/auth/phone_sign_in_screen.dart';
+import 'features/chat/chat_screen.dart';
+import 'features/games/create_game_screen.dart';
+import 'features/games/game_play_screen.dart';
+import 'features/settings/model_download_screen.dart';
+import 'features/settings/model_selection_screen.dart';
+import 'features/shell/main_shell_screen.dart';
+import 'features/skills/create_skill_screen.dart';
+import 'features/skills/skill_execution_screen.dart';
+import 'features/splash/loading_screen.dart';
+
+GoRouter createAppRouter({String initialLocation = '/loading'}) => GoRouter(
+  initialLocation: initialLocation,
+  routes: [
+    GoRoute(
+      path: '/loading',
+      builder: (_, __) => const LoadingScreen(),
+    ),
+    GoRoute(
+      path: '/auth/phone',
+      builder: (_, __) => const PhoneSignInScreen(),
+    ),
+    GoRoute(
+      path: '/auth/otp',
+      builder: (_, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return OtpVerificationScreen(
+          phoneNumber: (extra['phone'] as String?) ?? '',
+          demoOtp: extra['otp'] as String?,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/home',
+      builder: (_, __) => const MainShellScreen(),
+    ),
+    GoRoute(
+      path: '/chat/:sessionId',
+      builder: (_, state) => ChatScreen(
+        sessionId: state.pathParameters['sessionId']!,
+      ),
+    ),
+    GoRoute(
+      path: '/skills/run/:skillId',
+      builder: (_, state) => SkillExecutionScreen(
+        skillId: state.pathParameters['skillId']!,
+      ),
+    ),
+    GoRoute(
+      path: '/skills/create',
+      builder: (_, __) => const CreateSkillScreen(),
+    ),
+    GoRoute(
+      path: '/games/play/:gameId',
+      builder: (_, state) => GamePlayScreen(
+        gameId: state.pathParameters['gameId']!,
+      ),
+    ),
+    GoRoute(
+      path: '/games/create',
+      builder: (_, __) => const CreateGameScreen(),
+    ),
+    GoRoute(
+      path: '/models',
+      builder: (_, __) => const ModelSelectionScreen(),
+    ),
+    GoRoute(
+      path: '/models/download/:tierId',
+      builder: (_, state) => ModelDownloadScreen(
+        tierId: state.pathParameters['tierId']!,
+      ),
+    ),
+  ],
+);
+
+class EdgedApp extends StatelessWidget {
+  final GoRouter? router;
+
+  const EdgedApp({super.key, this.router});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      title: 'Edged',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
+      routerConfig: router ?? createAppRouter(),
+    );
+  }
+}

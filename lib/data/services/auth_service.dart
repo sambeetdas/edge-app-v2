@@ -1,0 +1,100 @@
+import 'dart:math';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uuid/uuid.dart';
+
+class CountryCode {
+  final String code;
+  final String name;
+  final String flag;
+
+  const CountryCode({
+    required this.code,
+    required this.name,
+    required this.flag,
+  });
+
+  String get displayLabel => '$flag $code  $name';
+}
+
+class AuthService {
+  static const _keyPhone = 'auth_phone';
+  static const _keyOtp = 'auth_otp';
+  static const _keyToken = 'auth_token';
+  static const _keyExpiry = 'auth_expiry';
+
+  final FlutterSecureStorage _storage;
+  final Random _random = Random.secure();
+
+  AuthService({FlutterSecureStorage? storage})
+      : _storage = storage ?? const FlutterSecureStorage();
+
+  static const List<CountryCode> allCountries = [
+    CountryCode(code: '+1', name: 'United States', flag: '🇺🇸'),
+    CountryCode(code: '+1', name: 'Canada', flag: '🇨🇦'),
+    CountryCode(code: '+7', name: 'Russia', flag: '🇷🇺'),
+    CountryCode(code: '+20', name: 'Egypt', flag: '🇪🇬'),
+    CountryCode(code: '+27', name: 'South Africa', flag: '🇿🇦'),
+    CountryCode(code: '+33', name: 'France', flag: '🇫🇷'),
+    CountryCode(code: '+44', name: 'United Kingdom', flag: '🇬🇧'),
+    CountryCode(code: '+49', name: 'Germany', flag: '🇩🇪'),
+    CountryCode(code: '+52', name: 'Mexico', flag: '🇲🇽'),
+    CountryCode(code: '+55', name: 'Brazil', flag: '🇧🇷'),
+    CountryCode(code: '+60', name: 'Malaysia', flag: '🇲🇾'),
+    CountryCode(code: '+61', name: 'Australia', flag: '🇦🇺'),
+    CountryCode(code: '+62', name: 'Indonesia', flag: '🇮🇩'),
+    CountryCode(code: '+64', name: 'New Zealand', flag: '🇳🇿'),
+    CountryCode(code: '+65', name: 'Singapore', flag: '🇸🇬'),
+    CountryCode(code: '+66', name: 'Thailand', flag: '🇹🇭'),
+    CountryCode(code: '+81', name: 'Japan', flag: '🇯🇵'),
+    CountryCode(code: '+82', name: 'South Korea', flag: '🇰🇷'),
+    CountryCode(code: '+86', name: 'China', flag: '🇨🇳'),
+    CountryCode(code: '+91', name: 'India', flag: '🇮🇳'),
+    CountryCode(code: '+92', name: 'Pakistan', flag: '🇵🇰'),
+    CountryCode(code: '+234', name: 'Nigeria', flag: '🇳🇬'),
+    CountryCode(code: '+254', name: 'Kenya', flag: '🇰🇪'),
+    CountryCode(code: '+966', name: 'Saudi Arabia', flag: '🇸🇦'),
+    CountryCode(code: '+971', name: 'UAE', flag: '🇦🇪'),
+  ];
+
+  Future<bool> isAuthenticated() async {
+    final token = await _storage.read(key: _keyToken);
+    final expiryStr = await _storage.read(key: _keyExpiry);
+    if (token == null || token.isEmpty || expiryStr == null) return false;
+    final expiry = DateTime.tryParse(expiryStr);
+    if (expiry == null) return false;
+    return DateTime.now().toUtc().isBefore(expiry);
+  }
+
+  Future<String?> getPhoneNumber() => _storage.read(key: _keyPhone);
+
+  /// Generates a local 6-digit OTP and returns it for demo display.
+  Future<String> sendOtp(String fullPhoneNumber) async {
+    final otp = (100000 + _random.nextInt(900000)).toString();
+    await _storage.write(key: _keyPhone, value: fullPhoneNumber);
+    await _storage.write(key: _keyOtp, value: otp);
+    return otp;
+  }
+
+  Future<String?> getPendingOtp() => _storage.read(key: _keyOtp);
+
+  Future<bool> verifyOtp(String code) async {
+    final trimmed = code.trim();
+    if (trimmed.length != 6) return false;
+    final storedOtp = await _storage.read(key: _keyOtp);
+    if (storedOtp == null || storedOtp != trimmed) return false;
+
+    final token = const Uuid().v4().replaceAll('-', '');
+    final expiry =
+        DateTime.now().toUtc().add(const Duration(days: 30)).toIso8601String();
+
+    await _storage.delete(key: _keyOtp);
+    await _storage.write(key: _keyToken, value: token);
+    await _storage.write(key: _keyExpiry, value: expiry);
+    return true;
+  }
+
+  Future<void> signOut() async {
+    await _storage.deleteAll();
+  }
+}
