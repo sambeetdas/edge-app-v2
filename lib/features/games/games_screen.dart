@@ -150,6 +150,7 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_create_game',
         onPressed: () async {
           await context.push('/games/create');
           _loadCustom();

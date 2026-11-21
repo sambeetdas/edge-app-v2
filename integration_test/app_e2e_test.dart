@@ -142,7 +142,7 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
 
     // 6. AI Chat E2E
-    await tester.tap(find.text('New Chat'));
+    await tester.tap(find.text('New Chat').first);
     await tester.pumpAndSettle();
 
     await tester.enterText(

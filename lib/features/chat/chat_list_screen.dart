@@ -177,6 +177,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_new_chat',
         onPressed: _startNewChat,
         icon: const Icon(Icons.add_comment_rounded),
         label: const Text('New Chat'),

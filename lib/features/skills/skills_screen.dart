@@ -157,6 +157,7 @@ class _SkillsScreenState extends ConsumerState<SkillsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_create_skill',
         onPressed: () async {
           await context.push('/skills/create');
           _loadCustom();
