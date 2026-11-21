@@ -153,5 +153,31 @@ void main() {
       final full = tokens.join();
       expect(full, contains('next starts with X'));
     });
+
+    test('ChatEngine.trimRequestToContext drops oldest turns and fits budget', () async {
+      final engine = ChatEngine();
+      await engine.loadModel(
+        modelPath: '/tmp/mock.gguf',
+        promptFormat: PromptFormat.chatML,
+        options: const ModelOptions(contextSize: 1024, maxTokens: 256),
+      );
+
+      final longMsg = List.filled(400, 'word').join(' ');
+      final req = ChatRequest(
+        systemPrompt: 'System prompt.',
+        messages: [
+          ChatMessage(role: ChatRole.user, content: 'OLDEST: $longMsg'),
+          ChatMessage(role: ChatRole.assistant, content: 'MIDDLE: $longMsg'),
+          const ChatMessage(role: ChatRole.user, content: 'LATEST QUESTION'),
+        ],
+      );
+
+      final trimmed = engine.trimRequestToContext(req);
+      expect(trimmed.messages.last.content, equals('LATEST QUESTION'));
+      expect(
+        trimmed.messages.any((m) => m.content.startsWith('OLDEST:')),
+        isFalse,
+      );
+    });
   });
 }

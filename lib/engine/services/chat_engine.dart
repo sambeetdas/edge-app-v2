@@ -127,6 +127,56 @@ class ChatEngine {
     }
   }
 
+  /// Trims oldest conversation turns (and oversized messages if needed) so the
+  /// formatted prompt + requested output tokens fit within [_options.contextSize].
+  @visibleForTesting
+  ChatRequest trimRequestToContext(ChatRequest request) {
+    final maxOut = request.maxTokens ?? _options.maxTokens;
+    final promptTokenBudget =
+        (_options.contextSize - maxOut - 64).clamp(128, _options.contextSize);
+    final totalCharBudget = (promptTokenBudget * 3.5).floor();
+
+    String? sys = request.systemPrompt;
+    final maxSysChars = (totalCharBudget * 0.4).floor();
+    if (sys != null && sys.length > maxSysChars) {
+      sys = '${sys.substring(0, maxSysChars)}\n...[truncated]';
+    }
+
+    var remainingChars = totalCharBudget - (sys?.length ?? 0) - 32;
+    if (remainingChars < 128) remainingChars = 128;
+
+    final kept = <ChatMessage>[];
+    for (var i = request.messages.length - 1; i >= 0; i--) {
+      final msg = request.messages[i];
+      final cost = msg.content.length + 32;
+      if (kept.isEmpty && cost > remainingChars) {
+        final maxLen = (remainingChars - 48).clamp(64, msg.content.length);
+        kept.add(
+          ChatMessage(
+            role: msg.role,
+            content: '${msg.content.substring(0, maxLen)}\n...[truncated]',
+          ),
+        );
+        break;
+      }
+      if (cost <= remainingChars) {
+        kept.add(msg);
+        remainingChars -= cost;
+      } else {
+        break;
+      }
+    }
+
+    return ChatRequest(
+      systemPrompt: sys,
+      messages: kept.reversed.toList(),
+      temperature: request.temperature,
+      topP: request.topP,
+      maxTokens: request.maxTokens,
+      repeatPenalty: request.repeatPenalty,
+    );
+  }
+
   /// Streams generated tokens while holding back potential partial anti-prompt sequences.
   Stream<String> generateStream(ChatRequest request) async* {
     if (!_isLoaded) {
@@ -134,9 +184,10 @@ class ChatEngine {
     }
 
     _isCancelled = false;
+    final safeRequest = trimRequestToContext(request);
     final formattedPrompt = _promptFormat.formatPrompt(
-      systemPrompt: request.systemPrompt,
-      messages: request.messages,
+      systemPrompt: safeRequest.systemPrompt,
+      messages: safeRequest.messages,
       suppressThinkingMode: _suppressThinkingMode,
     );
 
@@ -148,8 +199,8 @@ class ChatEngine {
 
     final buffer = StringBuffer();
     final rawStream = _nativeBackendAvailable
-        ? _streamNativeLlama(formattedPrompt, request)
-        : _streamLocalFallback(request);
+        ? _streamNativeLlama(formattedPrompt, safeRequest)
+        : _streamLocalFallback(safeRequest);
 
     await for (final token in rawStream) {
       if (_isCancelled) break;

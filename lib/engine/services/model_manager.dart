@@ -146,6 +146,7 @@ class ModelManager {
 
     if (Platform.isAndroid) {
       try {
+        await _deviceChannel.invokeMethod('requestNotificationPermission');
         await _deviceChannel.invokeMethod('startDownloadService', {
           'title': 'Downloading ${tier.displayName}',
         });

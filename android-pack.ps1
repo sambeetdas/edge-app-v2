@@ -7,10 +7,14 @@
 
 .PARAMETER Install
     Automatically install the built APK onto a connected Android phone via ADB.
+
+.PARAMETER AppBundle
+    Also build a signed Android App Bundle (.aab) for Google Play Store upload.
 #>
 param(
     [switch]$Debug,
-    [switch]$Install
+    [switch]$Install,
+    [switch]$AppBundle
 )
 
 $ErrorActionPreference = "Stop"
@@ -67,6 +71,18 @@ Write-Host "[3/3] APK ready!" -ForegroundColor Green
 Write-Host "  Path : $destApk" -ForegroundColor Cyan
 Write-Host "  Size : $sizeMb MB" -ForegroundColor Cyan
 Write-Host ""
+
+if ($AppBundle -and -not $Debug) {
+    Write-Host "Building release Android App Bundle (.aab)..." -ForegroundColor Yellow
+    & $flutterCmd build appbundle --release
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    $sourceAab = Join-Path $projectRoot "build\app\outputs\bundle\release\app-release.aab"
+    $destAab = Join-Path $distDir "Edged-v1.0.0-release.aab"
+    Copy-Item -Path $sourceAab -Destination $destAab -Force
+    $aabMb = [math]::Round((Get-Item $destAab).Length / 1MB, 2)
+    Write-Host "  AAB  : $destAab ($aabMb MB)" -ForegroundColor Cyan
+    Write-Host ""
+}
 
 if ($Install) {
     Write-Host "Installing APK onto connected phone via ADB..." -ForegroundColor Yellow
