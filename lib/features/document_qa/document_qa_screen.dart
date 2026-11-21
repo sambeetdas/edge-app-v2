@@ -39,11 +39,11 @@ class _DocumentQaScreenState extends ConsumerState<DocumentQaScreen> {
     });
 
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: DocumentService.supportedExtensions,
       );
-      if (result == null || result.files.single.path == null) {
+      if (result.isEmpty || result.single.path == null) {
         setState(() => _isExtracting = false);
         return;
       }
@@ -52,7 +52,7 @@ class _DocumentQaScreenState extends ConsumerState<DocumentQaScreen> {
       final maxCtx = tier?.maxContextTokens ?? 2048;
 
       final extracted = await ref.read(documentServiceProvider).extractAndFit(
-            file: File(result.files.single.path!),
+            file: File(result.single.path!),
             modelMaxContextTokens: maxCtx,
           );
 

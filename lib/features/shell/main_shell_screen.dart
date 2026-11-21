@@ -37,7 +37,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   Widget build(BuildContext context) {
     final modelAsync = ref.watch(downloadedModelProvider);
     final tier = ref.watch(activeModelTierProvider);
-    final hasModel = modelAsync.valueOrNull != null && tier != null;
+    final hasModel = modelAsync.value != null && tier != null;
 
     final tabs = <_ShellTab>[
       if (hasModel) ...[

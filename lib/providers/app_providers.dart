@@ -73,7 +73,7 @@ final downloadedModelProvider =
 );
 
 final activeModelTierProvider = Provider<ModelTier?>((ref) {
-  final info = ref.watch(downloadedModelProvider).valueOrNull;
+  final info = ref.watch(downloadedModelProvider).value;
   if (info == null) return null;
   return ModelTier.getById(info.tierId);
 });
