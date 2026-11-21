@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <group
+        android:pivotX="256"
+        android:pivotY="256"
+        android:scaleX="0.72"
+        android:scaleY="0.72">
+        <!-- Vertical stem -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M108,106 H176 V406 H108 Z" />
+        <!-- Top horizontal bar -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M108,106 H352 V172 H108 Z" />
+        <!-- Middle rightward chevron bar -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M108,222 L312,222 L404,256 L312,290 L108,290 Z" />
+        <!-- Bottom horizontal bar -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M108,340 H352 V406 H108 Z" />
+    </group>
+</vector>
