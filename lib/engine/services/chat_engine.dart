@@ -66,20 +66,14 @@ class ChatEngine {
             _llamaController = null;
           }
           final controller = LlamaController();
-          var gpuLayers = options.gpuLayers;
-          if (gpuLayers == 0) {
-            try {
-              final gpu = await controller.detectGpu();
-              if (gpu.vulkanSupported) {
-                gpuLayers = gpu.recommendedGpuLayers;
-              }
-            } catch (_) {}
+          if (await controller.isModelLoaded()) {
+            await controller.dispose();
           }
           await controller.loadModel(
             modelPath: modelPath,
             threads: options.threadCount,
             contextSize: options.contextSize,
-            gpuLayers: gpuLayers,
+            gpuLayers: options.gpuLayers,
           );
           _llamaController = controller;
           _nativeBackendAvailable = true;
@@ -206,6 +200,7 @@ class ChatEngine {
   ) async* {
     final controller = _llamaController;
     if (controller != null) {
+      await controller.clearContext();
       yield* controller.generate(
         prompt: formattedPrompt,
         maxTokens: request.maxTokens ?? _options.maxTokens,
