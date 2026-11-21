@@ -131,11 +131,12 @@ class _PhoneSignInScreenState extends ConsumerState<PhoneSignInScreen> {
 
     try {
       final fullPhone = '$code $phone';
-      final otp = await ref.read(authServiceProvider).sendOtp(fullPhone);
+      final hasPin =
+          await ref.read(authServiceProvider).hasPinForPhone(fullPhone);
       if (!mounted) return;
-      context.push('/auth/otp', extra: {'phone': fullPhone, 'otp': otp});
+      context.push('/auth/pin', extra: {'phone': fullPhone, 'hasPin': hasPin});
     } catch (e) {
-      setState(() => _error = 'Failed to send code: $e');
+      setState(() => _error = 'Failed to continue: $e');
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -181,7 +182,7 @@ class _PhoneSignInScreenState extends ConsumerState<PhoneSignInScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "We'll send a one-time code to verify your identity.",
+                    'Enter your phone number to sign in or set up your local PIN.',
                     style: theme.textTheme.bodyMedium?.copyWith(color: muted),
                   ),
                   const SizedBox(height: 16),
@@ -256,7 +257,7 @@ class _PhoneSignInScreenState extends ConsumerState<PhoneSignInScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text('Send Code'),
+                        : const Text('Continue'),
                   ),
                   const SizedBox(height: 28),
                   const Divider(),

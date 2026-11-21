@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
@@ -19,12 +17,11 @@ class CountryCode {
 
 class AuthService {
   static const _keyPhone = 'auth_phone';
-  static const _keyOtp = 'auth_otp';
+  static const _keyPin = 'auth_pin';
   static const _keyToken = 'auth_token';
   static const _keyExpiry = 'auth_expiry';
 
   final FlutterSecureStorage _storage;
-  final Random _random = Random.secure();
 
   AuthService({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();
@@ -68,33 +65,53 @@ class AuthService {
 
   Future<String?> getPhoneNumber() => _storage.read(key: _keyPhone);
 
-  /// Generates a local 6-digit OTP and returns it for demo display.
-  Future<String> sendOtp(String fullPhoneNumber) async {
-    final otp = (100000 + _random.nextInt(900000)).toString();
-    await _storage.write(key: _keyPhone, value: fullPhoneNumber);
-    await _storage.write(key: _keyOtp, value: otp);
-    return otp;
+  /// Returns true if a local PIN is already configured for [fullPhoneNumber].
+  Future<bool> hasPinForPhone(String fullPhoneNumber) async {
+    final storedPhone = await _storage.read(key: _keyPhone);
+    final storedPin = await _storage.read(key: _keyPin);
+    return storedPhone == fullPhoneNumber &&
+        storedPin != null &&
+        storedPin.isNotEmpty;
   }
 
-  Future<String?> getPendingOtp() => _storage.read(key: _keyOtp);
+  /// Saves a new 4–6 digit local PIN and creates a 30-day session.
+  Future<void> setupPin(String fullPhoneNumber, String pin) async {
+    final trimmed = pin.trim();
+    if (!RegExp(r'^\d{4,6}$').hasMatch(trimmed)) {
+      throw ArgumentError('PIN must be 4 to 6 digits.');
+    }
+    await _storage.write(key: _keyPhone, value: fullPhoneNumber);
+    await _storage.write(key: _keyPin, value: trimmed);
+    await _issueSession();
+  }
 
-  Future<bool> verifyOtp(String code) async {
-    final trimmed = code.trim();
-    if (trimmed.length != 6) return false;
-    final storedOtp = await _storage.read(key: _keyOtp);
-    if (storedOtp == null || storedOtp != trimmed) return false;
-
-    final token = const Uuid().v4().replaceAll('-', '');
-    final expiry =
-        DateTime.now().toUtc().add(const Duration(days: 30)).toIso8601String();
-
-    await _storage.delete(key: _keyOtp);
-    await _storage.write(key: _keyToken, value: token);
-    await _storage.write(key: _keyExpiry, value: expiry);
+  /// Verifies the entered PIN against the stored PIN and creates a 30-day session.
+  Future<bool> verifyPin(String pin) async {
+    final trimmed = pin.trim();
+    if (!RegExp(r'^\d{4,6}$').hasMatch(trimmed)) return false;
+    final storedPin = await _storage.read(key: _keyPin);
+    if (storedPin == null || storedPin != trimmed) return false;
+    await _issueSession();
     return true;
   }
 
+  Future<void> _issueSession() async {
+    final token = const Uuid().v4().replaceAll('-', '');
+    final expiry =
+        DateTime.now().toUtc().add(const Duration(days: 30)).toIso8601String();
+    await _storage.write(key: _keyToken, value: token);
+    await _storage.write(key: _keyExpiry, value: expiry);
+  }
+
+  /// Clears the stored PIN and session so the user can set a new PIN.
+  Future<void> resetPin() async {
+    await _storage.delete(key: _keyPin);
+    await _storage.delete(key: _keyToken);
+    await _storage.delete(key: _keyExpiry);
+  }
+
   Future<void> signOut() async {
-    await _storage.deleteAll();
+    await _storage.delete(key: _keyToken);
+    await _storage.delete(key: _keyExpiry);
   }
 }

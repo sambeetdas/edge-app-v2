@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/auth/otp_verification_screen.dart';
 import 'features/auth/phone_sign_in_screen.dart';
+import 'features/auth/pin_verification_screen.dart';
 import 'features/chat/chat_screen.dart';
 import 'features/games/create_game_screen.dart';
 import 'features/games/game_play_screen.dart';
@@ -26,12 +26,12 @@ GoRouter createAppRouter({String initialLocation = '/loading'}) => GoRouter(
       builder: (_, __) => const PhoneSignInScreen(),
     ),
     GoRoute(
-      path: '/auth/otp',
+      path: '/auth/pin',
       builder: (_, state) {
         final extra = state.extra as Map<String, dynamic>? ?? {};
-        return OtpVerificationScreen(
+        return PinVerificationScreen(
           phoneNumber: (extra['phone'] as String?) ?? '',
-          demoOtp: extra['otp'] as String?,
+          hasPin: (extra['hasPin'] as bool?) ?? false,
         );
       },
     ),

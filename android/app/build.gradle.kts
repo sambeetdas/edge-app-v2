@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         applicationId = "com.edgedai.app"
-        minSdk = 24
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

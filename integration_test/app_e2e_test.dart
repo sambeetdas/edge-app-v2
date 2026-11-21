@@ -13,7 +13,7 @@ import 'package:edged/providers/app_providers.dart';
 class _InMemoryAuthService extends AuthService {
   bool _authed = false;
   String? _phone;
-  String? _otp;
+  String? _pin;
 
   @override
   Future<bool> isAuthenticated() async => _authed;
@@ -22,30 +22,34 @@ class _InMemoryAuthService extends AuthService {
   Future<String?> getPhoneNumber() async => _phone;
 
   @override
-  Future<String> sendOtp(String fullPhoneNumber) async {
+  Future<bool> hasPinForPhone(String fullPhoneNumber) async =>
+      _phone == fullPhoneNumber && _pin != null;
+
+  @override
+  Future<void> setupPin(String fullPhoneNumber, String pin) async {
     _phone = fullPhoneNumber;
-    _otp = '123456';
-    return _otp!;
+    _pin = pin.trim();
+    _authed = true;
   }
 
   @override
-  Future<String?> getPendingOtp() async => _otp;
-
-  @override
-  Future<bool> verifyOtp(String code) async {
-    if (code.trim() == _otp) {
+  Future<bool> verifyPin(String pin) async {
+    if (_pin != null && pin.trim() == _pin) {
       _authed = true;
-      _otp = null;
       return true;
     }
     return false;
   }
 
   @override
+  Future<void> resetPin() async {
+    _pin = null;
+    _authed = false;
+  }
+
+  @override
   Future<void> signOut() async {
     _authed = false;
-    _phone = null;
-    _otp = null;
   }
 }
 
@@ -106,21 +110,26 @@ void main() {
     // 1. Splash -> Phone Sign-In
     await tester.pumpAndSettle();
     expect(find.text('Edged'), findsOneWidget);
-    expect(find.text('Send Code'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget);
 
     await tester.enterText(
       find.widgetWithText(TextField, 'Phone number'),
       '5551234567',
     );
-    await tester.tap(find.text('Send Code'));
+    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
-    // 2. OTP Verification
-    expect(find.text('Enter verification code'), findsOneWidget);
-    expect(find.text('Local OTP code: 123456'), findsOneWidget);
-    await tester.tap(find.text('Fill'));
-    await tester.pump();
-    await tester.tap(find.text('Verify & Continue'));
+    // 2. PIN Setup
+    expect(find.text('Create your PIN'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'New PIN'),
+      '123456',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Confirm PIN'),
+      '123456',
+    );
+    await tester.tap(find.text('Save PIN & Continue'));
     await tester.pumpAndSettle();
 
     // 3. Settings (no model downloaded yet -> only Settings visible)

@@ -1,18 +1,23 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:llama_flutter_android/llama_flutter_android.dart'
+    show LlamaController;
 
 import '../models/chat_models.dart';
 import '../models/prompt_format.dart';
 
 /// Serialized on-device LLM inference engine.
-/// Connects to a native llama.cpp backend via MethodChannel ('com.edgedai.app/llama')
-/// when linked, and provides an offline local fallback stream if the native GGUF
-/// runtime library is not yet bundled in the APK/IPA.
+/// Uses `llama_flutter_android` (llama.cpp) on Android and a native
+/// MethodChannel ('com.edgedai.app/llama') when linked on other platforms,
+/// falling back to an offline local stream if no native runtime is available.
 class ChatEngine {
   static const MethodChannel _llamaChannel =
       MethodChannel('com.edgedai.app/llama');
 
+  LlamaController? _llamaController;
   bool _isLoaded = false;
   bool _nativeBackendAvailable = false;
   String? _loadedModelPath;
@@ -54,18 +59,47 @@ class ChatEngine {
       _suppressThinkingMode = suppressThinkingMode;
       _options = options;
 
-      try {
-        await _llamaChannel.invokeMethod<bool>('loadModel', {
-          'modelPath': modelPath,
-          'contextSize': options.contextSize,
-          'batchSize': options.batchSize,
-          'gpuLayers': options.gpuLayers,
-          'threadCount': options.threadCount,
-        });
-        _nativeBackendAvailable = true;
-      } on MissingPluginException {
-        // Native llama.cpp plugin not linked yet — run with offline local fallback.
-        _nativeBackendAvailable = false;
+      if (!kIsWeb && Platform.isAndroid) {
+        try {
+          if (_llamaController != null) {
+            await _llamaController!.dispose();
+            _llamaController = null;
+          }
+          final controller = LlamaController();
+          var gpuLayers = options.gpuLayers;
+          if (gpuLayers == 0) {
+            try {
+              final gpu = await controller.detectGpu();
+              if (gpu.vulkanSupported) {
+                gpuLayers = gpu.recommendedGpuLayers;
+              }
+            } catch (_) {}
+          }
+          await controller.loadModel(
+            modelPath: modelPath,
+            threads: options.threadCount,
+            contextSize: options.contextSize,
+            gpuLayers: gpuLayers,
+          );
+          _llamaController = controller;
+          _nativeBackendAvailable = true;
+        } on MissingPluginException {
+          _nativeBackendAvailable = false;
+        }
+      } else {
+        try {
+          await _llamaChannel.invokeMethod<bool>('loadModel', {
+            'modelPath': modelPath,
+            'contextSize': options.contextSize,
+            'batchSize': options.batchSize,
+            'gpuLayers': options.gpuLayers,
+            'threadCount': options.threadCount,
+          });
+          _nativeBackendAvailable = true;
+        } on MissingPluginException {
+          // Native llama.cpp plugin not linked yet — run with offline local fallback.
+          _nativeBackendAvailable = false;
+        }
       }
 
       _loadedModelPath = modelPath;
@@ -75,7 +109,12 @@ class ChatEngine {
 
   Future<void> unloadModel() {
     return _synchronized(() async {
-      if (_nativeBackendAvailable) {
+      if (_llamaController != null) {
+        try {
+          await _llamaController!.dispose();
+        } catch (_) {}
+        _llamaController = null;
+      } else if (_nativeBackendAvailable) {
         try {
           await _llamaChannel.invokeMethod('unloadModel');
         } catch (_) {}
@@ -87,7 +126,9 @@ class ChatEngine {
 
   void stopGeneration() {
     _isCancelled = true;
-    if (_nativeBackendAvailable) {
+    if (_llamaController != null) {
+      _llamaController!.stop().catchError((_) {});
+    } else if (_nativeBackendAvailable) {
       _llamaChannel.invokeMethod('stopGeneration').catchError((_) {});
     }
   }
@@ -163,6 +204,18 @@ class ChatEngine {
     String formattedPrompt,
     ChatRequest request,
   ) async* {
+    final controller = _llamaController;
+    if (controller != null) {
+      yield* controller.generate(
+        prompt: formattedPrompt,
+        maxTokens: request.maxTokens ?? _options.maxTokens,
+        temperature: request.temperature ?? _options.temperature,
+        topP: request.topP ?? _options.topP,
+        repeatPenalty: request.repeatPenalty ?? _options.repeatPenalty,
+      );
+      return;
+    }
+
     const EventChannel tokenChannel =
         EventChannel('com.edgedai.app/llama_tokens');
     await _llamaChannel.invokeMethod('startGeneration', {
