@@ -3,15 +3,15 @@
 A 1:1 Flutter/Dart port of **Edged** (`Edge.App` + `Prompter.AI.Edge`) from `edge.ai` — your private, offline on-device AI assistant.
 
 ## Features Implemented
-- **Phone + Local OTP Auth** (`com.edgedai.app`) with 25-country autocomplete picker and 30-day secure session (`flutter_secure_storage`).
+- **Phone + Local PIN Auth** (`com.edgedai.app`) with 25-country autocomplete picker and 30-day secure session (`flutter_secure_storage`).
 - **7 On-Device Model Tiers** (Lite / Standard / Pro) with HuggingFace GGUF + `mmproj` downloads, pause/resume, disk-full detection, `prompter_model_meta.json`, and 99%-size orphan self-healing.
-- **Capability-Gated Navigation**: `Chats`, `Agent Skills`, `Image Q&A` (vision tiers), `Docs Q&A` (`maxContextTokens >= 2048`), `AI Games`, and `Settings`.
-- **AI Chat** with SQLite persistence (`edge_chat.db`), auto-titling, last-10-message context trimming, live device context injection, 10s "Still thinking…" indicator, and 120s timeout.
+- **5-Tab Navigation**: `Chats`, `Knowledge`, `Scan`, `Skills`, and `Settings` (with `/proactive` accessible from the Chats AppBar bell icon).
+- **AI Chat + Offline Voice Mode** with SQLite persistence (`edge_chat.db` v3), auto-titling, last-10-message context trimming, live device context injection, on-device English Speech-to-Text (`speech_to_text`), sentence-buffered Text-to-Speech (`flutter_tts`), and real-time barge-in stop.
+- **Offline Knowledge Base (RAG + Citations)**: Multi-document `.txt`, `.md`, `.docx`, and `.pdf` indexing (up to 10 MB) with chunking, SQLite persistence (`KnowledgeDocumentEntity`, `KnowledgeChunkEntity`), hybrid keyword/BM25 retrieval, structured answers, and inline `[filename §chunk]` source citations.
+- **Offline Scan & Receipt OCR**: Camera & gallery image capture powered by on-device ML Kit Latin OCR (`google_mlkit_text_recognition`) feeding into `Qwen3.5` / `ChatEngine` for receipt totals, itemized lists, and text summaries.
+- **Proactive Local Assistant (`/proactive`)**: On-device Daily Briefing generator (`OVERVIEW`, `HIGHLIGHTS`, `NEXT ACTIONS`), scheduled offline reminders (`ProactiveReminderEntity`), and 24-hour background briefings (`workmanager` + `flutter_local_notifications`).
 - **6 Built-in Skills + Custom Skill Builder** (Summarizer, Translator, Code Explainer, Writing Assistant, Grammar Fixer, Brainstorm Helper).
-- **9 Built-in AI Games + Custom Game Builder** (20 Questions, Riddle Me This, Text Adventure, Trivia Challenge, Story Builder, Word Chain, Word Game, Who Am I?, Debate Club) with word-game validation and retry support.
-- **Document Q&A** (`.txt`, `.md`, `.docx`, `.pdf` up to 10 MB, 4 chars/token, 750 reserved tokens, truncation warning).
-- **Image Q&A** (camera & gallery picker).
-- **Android & iOS Native Channels** (`com.edgedai.app/device` for RAM & free storage probing).
+- **Android & iOS Native Channels** (`com.edgedai.app/device` for RAM/storage probing, foreground download service, and `ACTION_OPEN_DOCUMENT` file-to-cache streaming).
 
 ## Getting Started
 

@@ -6,17 +6,17 @@
 lib/
 ├── main.dart                     # ProviderScope + WidgetsFlutterBinding
 ├── app.dart                      # GoRouter routes + MaterialApp.router (Light/Dark Theme)
-├── core/                         # Shared theme, colors, logo painter, formatters
+├── core/                         # Shared theme, colors, logo painter, formatters, StructuredResponseCard
 ├── engine/                       # Framework-agnostic AI engine (port of Prompter.AI.Edge)
 │   ├── models/                   # ModelTier, PromptFormat, ChatModels
-│   └── services/                 # ModelManager, ChatEngine, SkillsEngine, VisionEngine
+│   └── services/                 # ModelManager, ChatEngine, SkillsEngine, VisionEngine (ML Kit OCR), VoiceService
 ├── data/                         # Persistence & platform data services
-│   ├── database/                 # AppDatabase (sqflite -> edge_chat.db)
+│   ├── database/                 # AppDatabase (sqflite -> edge_chat.db v3)
 │   └── services/                 # AuthService, ChatHistoryService, CustomSkillsService,
-│                                 # GamesService, DocumentService, DeviceService
+│                                 # DocumentService, KnowledgeService, ProactiveService, DeviceService
 ├── providers/                    # Riverpod providers + shared model_loader_helper.dart
 └── features/                     # Feature-sliced UI screens (Splash, Auth, Shell, Chat,
-                                  # Skills, Image Q&A, Docs Q&A, Games, Settings/Models)
+                                  # Knowledge Base, Scan OCR, Skills, Proactive, Settings/Models)
 ```
 
 ## 2. Engine Layer (`lib/engine/`)
@@ -26,17 +26,20 @@ lib/
 - **`ModelManager`**: Streams downloads via `Dio` to `<appDocs>/models/`, supports `.part` HTTP Range resume, holds `WakelockPlus` during download, writes `prompter_model_meta.json`, and heals lost metadata by scanning for `>= 99%` sized GGUF files.
 
 ## 3. Data & Persistence (`lib/data/`)
-- **SQLite (`edge_chat.db`)**:
+- **SQLite (`edge_chat.db`, v3)**:
   - `ChatSessionEntity` (`Id`, `Title`, `CreatedAt`, `UpdatedAt`, `Summary`, `SummarizedUpToMessageId`)
   - `ChatMessageEntity` (`Id`, `SessionId` indexed, `Role`, `Content`, `Timestamp`)
   - `CustomSkillEntity` (`Id`, `Name`, `Description`, `Icon`, `SystemPrompt`, `InputPlaceholder`, `Category`, `CreatedAt`)
   - `CustomGameEntity` (`Id`, `Name`, `Description`, `Icon`, `Category`, `SystemPrompt`, `StarterMessage`, `HowToPlay`, `CreatedAt`)
+  - `KnowledgeDocumentEntity` (`Id`, `FileName`, `FileSizeBytes`, `ChunkCount`, `CreatedAt`)
+  - `KnowledgeChunkEntity` (`Id`, `DocumentId` indexed, `FileName`, `ChunkIndex`, `Content`)
+  - `ProactiveReminderEntity` (`Id`, `Title`, `TriggerAt`, `IsCompleted`, `CreatedAt`)
 - **Secure Storage**: `AuthService` stores `auth_phone`, `auth_otp`, `auth_token`, `auth_expiry` in `FlutterSecureStorage`.
 - **Native Device Channel (`com.edgedai.app/device`)**:
-  - Android ([MainActivity.kt](file:///d:/Sambeet/Working%20Folder/edge,app,v2/android/app/src/main/kotlin/com/edgedai/app/MainActivity.kt)): `ActivityManager.MemoryInfo.totalMem` and `StatFs.availableBytes`.
-  - iOS ([AppDelegate.swift](file:///d:/Sambeet/Working%20Folder/edge,app,v2/ios/Runner/AppDelegate.swift)): `ProcessInfo.processInfo.physicalMemory` and `volumeAvailableCapacityForImportantUsage`.
+  - Android ([MainActivity.kt](file:///d:/Sambeet/Working%20Folder/edge-app-v2/android/app/src/main/kotlin/com/edgedai/app/MainActivity.kt)): `ActivityManager.MemoryInfo.totalMem`, `StatFs.availableBytes`, `ModelDownloadService` foreground notifications, and `ACTION_OPEN_DOCUMENT` streaming to cache file.
+  - iOS ([AppDelegate.swift](file:///d:/Sambeet/Working%20Folder/edge-app-v2/ios/Runner/AppDelegate.swift)): `ProcessInfo.processInfo.physicalMemory` and `volumeAvailableCapacityForImportantUsage`.
 
 ## 4. Navigation & State Flow
 - **Startup**: `/loading` (`LoadingScreen`) checks `AuthService.isAuthenticated()` → routes to `/auth/phone` or `/home` (`MainShellScreen`).
-- **Capability Gating**: `MainShellScreen` watches `downloadedModelProvider` and `activeModelTierProvider` to dynamically show/hide `Chats`, `Skills`, `Image`, `Docs`, and `Games` tabs alongside `Settings`.
-- **Shared Model Loader**: `ensureModelLoadedFromWidget(ref)` in [model_loader_helper.dart](file:///d:/Sambeet/Working%20Folder/edge,app,v2/lib/providers/model_loader_helper.dart) centralizes model loading across Chat, Skills, Docs Q&A, Image Q&A, and Games.
+- **5-Tab Navigation + Proactive Route**: `MainShellScreen` watches `downloadedModelProvider` and `activeModelTierProvider` to show `Chats`, `Knowledge`, `Scan`, `Skills`, and `Settings`, with `/proactive` (`ProactiveScreen`) launched from the Chats AppBar.
+- **Shared Model Loader**: `ensureModelLoadedFromWidget(ref)` in [model_loader_helper.dart](file:///d:/Sambeet/Working%20Folder/edge-app-v2/lib/providers/model_loader_helper.dart) centralizes model loading across Chat, Knowledge, Scan, Skills, and Proactive Daily Briefing.
