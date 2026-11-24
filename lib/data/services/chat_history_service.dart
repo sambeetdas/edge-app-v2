@@ -187,4 +187,18 @@ class ChatHistoryService {
       timestamp: now,
     );
   }
+
+  Future<void> deleteMessagesByIds(
+    String sessionId,
+    List<String> messageIds,
+  ) async {
+    if (messageIds.isEmpty) return;
+    final db = await _db.database;
+    final placeholders = List.filled(messageIds.length, '?').join(', ');
+    await db.delete(
+      'ChatMessageEntity',
+      where: 'SessionId = ? AND Id IN ($placeholders)',
+      whereArgs: [sessionId, ...messageIds],
+    );
+  }
 }

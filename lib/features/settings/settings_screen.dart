@@ -80,7 +80,7 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Download an on-device model to unlock Chats, Agent Skills, Docs Q&A, Image Q&A, and AI Games.',
+                          'Download an on-device model to unlock Chats, Agent Skills, and Docs Q&A.',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -126,7 +126,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Capabilities: Chat · Skills · Games'
+                        'Capabilities: Chat · Skills'
                         '${tier.supportsVision ? ' · Image Q&A' : ''}'
                         '${tier.supportsDocumentQa ? ' · Docs Q&A' : ''}',
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -158,6 +158,60 @@ class SettingsScreen extends ConsumerWidget {
                     ],
                   );
                 },
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Appearance',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Theme',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<ThemeMode>(
+                      segments: const [
+                        ButtonSegment(
+                          value: ThemeMode.system,
+                          icon: Icon(Icons.brightness_auto_rounded, size: 18),
+                          label: Text('Auto'),
+                        ),
+                        ButtonSegment(
+                          value: ThemeMode.light,
+                          icon: Icon(Icons.light_mode_rounded, size: 18),
+                          label: Text('Light'),
+                        ),
+                        ButtonSegment(
+                          value: ThemeMode.dark,
+                          icon: Icon(Icons.dark_mode_rounded, size: 18),
+                          label: Text('Dark'),
+                        ),
+                      ],
+                      selected: {ref.watch(themeModeProvider)},
+                      onSelectionChanged: (selection) {
+                        ref
+                            .read(themeModeProvider.notifier)
+                            .setThemeMode(selection.first);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

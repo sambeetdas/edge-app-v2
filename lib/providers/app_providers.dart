@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../data/database/app_database.dart';
 import '../data/services/auth_service.dart';
@@ -6,7 +8,6 @@ import '../data/services/chat_history_service.dart';
 import '../data/services/custom_skills_service.dart';
 import '../data/services/device_service.dart';
 import '../data/services/document_service.dart';
-import '../data/services/games_service.dart';
 import '../engine/models/chat_models.dart';
 import '../engine/models/model_tier.dart';
 import '../engine/services/chat_engine.dart';
@@ -33,10 +34,6 @@ final chatHistoryServiceProvider = Provider<ChatHistoryService>(
 
 final customSkillsServiceProvider = Provider<CustomSkillsService>(
   (ref) => CustomSkillsService(ref.watch(appDatabaseProvider)),
-);
-
-final gamesServiceProvider = Provider<GamesService>(
-  (ref) => GamesService(ref.watch(appDatabaseProvider)),
 );
 
 final documentServiceProvider = Provider<DocumentService>(
@@ -77,3 +74,38 @@ final activeModelTierProvider = Provider<ModelTier?>((ref) {
   if (info == null) return null;
   return ModelTier.getById(info.tierId);
 });
+
+class ThemeModeNotifier extends Notifier<ThemeMode> {
+  static const _storage = FlutterSecureStorage();
+  static const _keyThemeMode = 'app_theme_mode';
+
+  @override
+  ThemeMode build() {
+    _loadSaved();
+    return ThemeMode.dark;
+  }
+
+  Future<void> _loadSaved() async {
+    try {
+      final raw = await _storage.read(key: _keyThemeMode);
+      if (raw == 'dark') {
+        state = ThemeMode.dark;
+      } else if (raw == 'light') {
+        state = ThemeMode.light;
+      } else if (raw == 'system') {
+        state = ThemeMode.system;
+      }
+    } catch (_) {}
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    state = mode;
+    try {
+      await _storage.write(key: _keyThemeMode, value: mode.name);
+    } catch (_) {}
+  }
+}
+
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
+  ThemeModeNotifier.new,
+);

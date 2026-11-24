@@ -54,7 +54,41 @@ class AppTheme {
   }
 
   static ThemeData _applySharedStyling(ThemeData base, {required bool isDark}) {
-    final textTheme = GoogleFonts.openSansTextTheme(base.textTheme);
+    final rawTextTheme = GoogleFonts.openSansTextTheme(base.textTheme);
+    final textTheme = rawTextTheme.copyWith(
+      headlineSmall: rawTextTheme.headlineSmall?.copyWith(
+        fontSize: 25,
+        fontWeight: FontWeight.w700,
+      ),
+      titleLarge: rawTextTheme.titleLarge?.copyWith(
+        fontSize: 21,
+        fontWeight: FontWeight.w700,
+      ),
+      titleMedium: rawTextTheme.titleMedium?.copyWith(
+        fontSize: 17.5,
+        fontWeight: FontWeight.w600,
+      ),
+      titleSmall: rawTextTheme.titleSmall?.copyWith(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
+      bodyLarge: rawTextTheme.bodyLarge?.copyWith(
+        fontSize: 16.5,
+        height: 1.45,
+      ),
+      bodyMedium: rawTextTheme.bodyMedium?.copyWith(
+        fontSize: 15.5,
+        height: 1.45,
+      ),
+      bodySmall: rawTextTheme.bodySmall?.copyWith(
+        fontSize: 13.5,
+        height: 1.4,
+      ),
+      labelLarge: rawTextTheme.labelLarge?.copyWith(
+        fontSize: 15.5,
+        fontWeight: FontWeight.w600,
+      ),
+    );
     final cardColor =
         isDark ? AppColors.surfaceContainerDark : AppColors.surfaceContainer;
 
@@ -63,11 +97,12 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
-        scrolledUnderElevation: 1,
-        backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surface,
+        scrolledUnderElevation: 0,
+        backgroundColor: Colors.transparent,
         foregroundColor: isDark ? AppColors.onSurfaceDark : AppColors.onSurface,
         titleTextStyle: textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
           color: isDark ? AppColors.onSurfaceDark : AppColors.onSurface,
         ),
       ),
@@ -75,13 +110,34 @@ class AppTheme {
         color: cardColor,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           side: BorderSide(
             color: (isDark ? AppColors.outlineDark : AppColors.outline)
-                .withValues(alpha: 0.35),
+                .withValues(alpha: isDark ? 0.55 : 0.65),
           ),
         ),
         margin: EdgeInsets.zero,
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        side: BorderSide(
+          color: (isDark ? AppColors.outlineDark : AppColors.outline)
+              .withValues(alpha: 0.6),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -120,7 +176,8 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        elevation: 2,
+        height: 68,
+        elevation: 0,
         backgroundColor:
             isDark ? AppColors.surfaceContainerDark : AppColors.surfaceContainer,
         indicatorColor:

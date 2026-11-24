@@ -32,10 +32,31 @@ class Formatters {
     return DateFormat.MMMd().format(local);
   }
 
-  /// Strips basic markdown markers for clean bubble display (matching StripMarkdownConverter).
+  /// Strips thinking tags and markdown markers for clean bubble display.
   static String stripMarkdown(String input) {
     var out = input;
+    // Remove complete <think>...</think> blocks and any unclosed <think>... tail.
+    out = out.replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '');
+    out = out.replaceAll(RegExp(r'<think>[\s\S]*$', caseSensitive: false), '');
+    out = out.replaceAll(RegExp(r'</think>', caseSensitive: false), '');
+
+    // Remove any stray chat-template control tokens.
+    out = out.replaceAll(
+      RegExp(r'<\|?(?:im_start|im_end|endoftext|end|start_of_turn|end_of_turn)\|?>'),
+      '',
+    );
+
+    // Remove code fence lines (```dart, ```) while keeping the code inside.
+    out = out.replaceAll(RegExp(r'^```[^\n]*\n?', multiLine: true), '');
     out = out.replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
+    out = out.replaceAll(RegExp(r'^\s*[-*_]{3,}\s*$', multiLine: true), '');
+
+    // Convert markdown list markers (* item or - item) to clean bullets.
+    out = out.replaceAllMapped(
+      RegExp(r'^([ \t]*)[*-]\s+', multiLine: true),
+      (m) => '${m.group(1) ?? ''}• ',
+    );
+
     out = out.replaceAll('**', '');
     out = out.replaceAll('__', '');
     out = out.replaceAll('`', '');
@@ -43,6 +64,7 @@ class Formatters {
       RegExp(r'(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)'),
       (m) => m.group(1) ?? '',
     );
+    out = out.replaceAll(RegExp(r'\n{3,}'), '\n\n');
     return out.trim();
   }
 }

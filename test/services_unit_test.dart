@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:edged/core/utils/formatters.dart';
 import 'package:edged/data/services/device_service.dart';
 import 'package:edged/data/services/document_service.dart';
 import 'package:edged/engine/models/chat_models.dart';
@@ -178,6 +179,13 @@ void main() {
         trimmed.messages.any((m) => m.content.startsWith('OLDEST:')),
         isFalse,
       );
+    });
+
+    test('Formatters.stripMarkdown removes think blocks and formats bullets', () {
+      const raw = '<think>\ninternal reasoning\n</think>\n\n'
+          '### Summary\n* **First** point\n- *Second* `point`\n\n<think>partial';
+      final cleaned = Formatters.stripMarkdown(raw);
+      expect(cleaned, equals('Summary\n• First point\n• Second point'));
     });
   });
 }

@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
@@ -45,7 +47,24 @@ class DocumentService {
       throw Exception('File exceeds the 10 MB limit.');
     }
 
-    final ext = p.extension(file.path).toLowerCase().replaceFirst('.', '');
+    final bytes = await file.readAsBytes();
+    return extractAndFitBytes(
+      fileName: p.basename(file.path),
+      bytes: bytes,
+      modelMaxContextTokens: modelMaxContextTokens,
+    );
+  }
+
+  Future<ExtractedDocument> extractAndFitBytes({
+    required String fileName,
+    required Uint8List bytes,
+    required int modelMaxContextTokens,
+  }) async {
+    if (bytes.length > maxFileSizeBytes) {
+      throw Exception('File exceeds the 10 MB limit.');
+    }
+
+    final ext = p.extension(fileName).toLowerCase().replaceFirst('.', '');
     if (!supportedExtensions.contains(ext)) {
       throw Exception(
         'Unsupported file type ".$ext". Supported: .txt, .md, .docx, .pdf',
@@ -56,13 +75,13 @@ class DocumentService {
     switch (ext) {
       case 'txt':
       case 'md':
-        text = await file.readAsString();
+        text = utf8.decode(bytes, allowMalformed: true);
         break;
       case 'docx':
-        text = await _extractDocx(file);
+        text = _extractDocxBytes(bytes);
         break;
       case 'pdf':
-        text = await _extractPdf(file);
+        text = _extractPdfBytes(bytes);
         break;
       default:
         throw Exception('Unsupported file format.');
@@ -85,8 +104,8 @@ class DocumentService {
     final usedTokens = (contextText.length / charsPerToken).ceil();
 
     return ExtractedDocument(
-      fileName: p.basename(file.path),
-      fileSizeBytes: stat.size,
+      fileName: fileName,
+      fileSizeBytes: bytes.length,
       fullText: text,
       contextText: contextText,
       estimatedTokens: estimatedTokens,
@@ -95,14 +114,16 @@ class DocumentService {
     );
   }
 
-  Future<String> _extractDocx(File file) async {
-    final bytes = await file.readAsBytes();
+  String _extractDocxBytes(Uint8List bytes) {
     final archive = ZipDecoder().decodeBytes(bytes);
     final docEntry = archive.findFile('word/document.xml');
     if (docEntry == null) {
       throw Exception('Invalid DOCX file: missing word/document.xml.');
     }
-    final xmlString = String.fromCharCodes(docEntry.content as List<int>);
+    final xmlString = utf8.decode(
+      docEntry.content as List<int>,
+      allowMalformed: true,
+    );
     final doc = XmlDocument.parse(xmlString);
     final sb = StringBuffer();
 
@@ -115,8 +136,7 @@ class DocumentService {
     return sb.toString();
   }
 
-  Future<String> _extractPdf(File file) async {
-    final bytes = await file.readAsBytes();
+  String _extractPdfBytes(Uint8List bytes) {
     final document = PdfDocument(inputBytes: bytes);
     try {
       final extractor = PdfTextExtractor(document);

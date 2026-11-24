@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/app_providers.dart';
 import '../chat/chat_list_screen.dart';
 import '../document_qa/document_qa_screen.dart';
-import '../games/games_screen.dart';
 import '../image_qa/image_qa_screen.dart';
 import '../settings/settings_screen.dart';
 import '../skills/skills_screen.dart';
@@ -67,12 +66,6 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             selectedIcon: Icons.description_rounded,
             page: DocumentQaScreen(),
           ),
-        const _ShellTab(
-          label: 'Games',
-          icon: Icons.sports_esports_outlined,
-          selectedIcon: Icons.sports_esports_rounded,
-          page: GamesScreen(),
-        ),
       ],
       const _ShellTab(
         label: 'Settings',

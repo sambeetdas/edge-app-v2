@@ -92,7 +92,7 @@ class _FakeModelManager extends ModelManager {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Full E2E: Auth -> Model Download -> Chat -> Skills -> Games -> Sign Out',
+  testWidgets('Full E2E: Auth -> Model Download -> Chat -> Skills -> Sign Out',
       (tester) async {
     final authService = _InMemoryAuthService();
     final modelManager = _FakeModelManager();
@@ -137,17 +137,15 @@ void main() {
     await tester.tap(find.text('Choose & Download Model'));
     await tester.pumpAndSettle();
 
-    // 4. Model Selection -> Download Qwen2.5-VL 3B (Vision + Docs)
-    expect(find.text('Qwen2.5-VL 3B'), findsOneWidget);
-    await tester.tap(find.text('Qwen2.5-VL 3B'));
+    // 4. Model Selection -> Download Qwen3.5 2B
+    expect(find.text('Qwen3.5 2B'), findsOneWidget);
+    await tester.tap(find.text('Qwen3.5 2B'));
     await tester.pumpAndSettle();
 
     // 5. Capability-gated tabs are now unlocked
     expect(find.text('Chats'), findsWidgets);
     expect(find.text('Skills'), findsOneWidget);
-    expect(find.text('Image'), findsOneWidget);
     expect(find.text('Docs'), findsOneWidget);
-    expect(find.text('Games'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
 
     // 6. AI Chat E2E
@@ -158,7 +156,7 @@ void main() {
       find.widgetWithText(TextField, 'Message Edged...'),
       'Hello Edged!',
     );
-    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     expect(find.textContaining('Hello Edged!'), findsWidgets);
 
@@ -184,39 +182,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // 8. AI Games E2E (Word Chain validation)
-    await tester.tap(find.text('Games'));
-    await tester.pumpAndSettle();
-    expect(find.text('Word Chain'), findsOneWidget);
-    await tester.tap(find.text('Word Chain'));
-    await tester.pumpAndSettle();
-
-    // Invalid multi-word input rejected client-side
-    await tester.enterText(find.byType(TextField), 'two words');
-    await tester.tap(find.byIcon(Icons.send_rounded));
-    await tester.pumpAndSettle();
-    expect(
-      find.textContaining('single English word'),
-      findsOneWidget,
-    );
-
-    // Valid word input
-    await tester.enterText(find.byType(TextField), 'apple');
-    await tester.tap(find.byIcon(Icons.send_rounded));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
-    expect(find.textContaining('Next word must start with:'), findsOneWidget);
-
-    // How to Play dialog
-    await tester.tap(find.byIcon(Icons.help_outline_rounded));
-    await tester.pumpAndSettle();
-    expect(find.text('How to Play: Word Chain'), findsOneWidget);
-    await tester.tap(find.text('Got it'));
-    await tester.pumpAndSettle();
-
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-
-    // 9. Settings & Sign Out E2E
+    // 8. Settings & Sign Out E2E
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Edged v1.0.0'), findsOneWidget);

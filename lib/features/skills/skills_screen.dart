@@ -92,9 +92,21 @@ class _SkillsScreenState extends ConsumerState<SkillsScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                skill.icon,
-                                style: const TextStyle(fontSize: 28),
+                              Container(
+                                width: 44,
+                                height: 44,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer
+                                      .withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  skill.icon,
+                                  style: const TextStyle(fontSize: 22),
+                                ),
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(

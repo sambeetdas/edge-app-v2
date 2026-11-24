@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/edged_logo.dart';
 import '../../engine/models/chat_models.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/model_loader_helper.dart';
@@ -111,13 +113,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _title = autoTitle;
     }
 
-    final streamingBubble = ChatBubbleModel(
-      id: 'streaming',
-      isUser: false,
-      content: '',
-      isStreaming: true,
-    );
-
     setState(() {
       _bubbles.add(
         ChatBubbleModel(
@@ -127,6 +122,45 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           timestamp: userMsg.timestamp,
         ),
       );
+    });
+
+    await _streamAssistantReply();
+  }
+
+  Future<void> _regenerateAt(int index) async {
+    if (_isGenerating || index < 0 || index >= _bubbles.length) return;
+
+    final target = _bubbles[index];
+    final cutStart = target.isUser ? index + 1 : index;
+
+    if (cutStart < _bubbles.length) {
+      final idsToDelete = _bubbles
+          .sublist(cutStart)
+          .map((b) => b.id)
+          .where((id) => id != 'streaming')
+          .toList();
+      await ref
+          .read(chatHistoryServiceProvider)
+          .deleteMessagesByIds(widget.sessionId, idsToDelete);
+      if (!mounted) return;
+      setState(() {
+        _bubbles.removeRange(cutStart, _bubbles.length);
+      });
+    }
+
+    await _streamAssistantReply();
+  }
+
+  Future<void> _streamAssistantReply() async {
+    final history = ref.read(chatHistoryServiceProvider);
+    final streamingBubble = ChatBubbleModel(
+      id: 'streaming',
+      isUser: false,
+      content: '',
+      isStreaming: true,
+    );
+
+    setState(() {
       _bubbles.add(streamingBubble);
       _isGenerating = true;
     });
@@ -138,11 +172,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ? allMsgs.sublist(allMsgs.length - 10)
         : allMsgs;
 
-    final deviceCtx =
-        await ref.read(deviceServiceProvider).buildDeviceContextString();
+    final latestUserText = recent
+            .where((m) => m.role == 'user')
+            .lastOrNull
+            ?.content
+            .toLowerCase() ??
+        '';
+    final asksAboutDevice = RegExp(
+      r'\b(device|phone|battery|storage|ram|memory|android|ios|model|os)\b',
+    ).hasMatch(latestUserText);
+
+    final deviceCtx = asksAboutDevice
+        ? '\n${await ref.read(deviceServiceProvider).buildDeviceContextString()}'
+        : '';
     final systemPrompt =
-        'You are Edged, a helpful, private, offline AI assistant running on-device. '
-        'Be concise and clear.\n$deviceCtx';
+        'You are Edged, a helpful, private, offline AI assistant. '
+        'Answer the user\'s request directly, concisely, and accurately.$deviceCtx';
 
     final request = ChatRequest(
       systemPrompt: systemPrompt,
@@ -192,16 +237,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
 
       final finalContent = sb.toString().trim();
+      String? savedId;
       if (finalContent.isNotEmpty) {
-        await history.addMessage(
+        final saved = await history.addMessage(
           sessionId: widget.sessionId,
           role: 'assistant',
           content: finalContent,
         );
+        savedId = saved.id;
       }
 
       if (mounted) {
         setState(() {
+          if (savedId != null) {
+            streamingBubble.id = savedId;
+          }
           streamingBubble.content = finalContent.isEmpty
               ? (timedOut ? 'Generation timed out.' : 'Stopped.')
               : finalContent;
@@ -253,16 +303,60 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     Expanded(
                       child: _bubbles.isEmpty
                           ? Center(
-                              child: Text(
-                                'Ask anything — 100% offline on your device.',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const EdgedLogo(
+                                      size: 56,
+                                      borderRadius: 16,
                                     ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'How can I help today?',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Your messages stay 100% private on your device.',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      alignment: WrapAlignment.center,
+                                      children: [
+                                        for (final prompt in const [
+                                          'Summarize a topic in 3 bullets',
+                                          'Write a polite follow-up email',
+                                          'Explain how neural networks work',
+                                        ])
+                                          ActionChip(
+                                            label: Text(prompt),
+                                            onPressed: () {
+                                              _inputController.text = prompt;
+                                              _sendMessage();
+                                            },
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             )
                           : ListView.builder(
@@ -271,38 +365,87 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               itemCount: _bubbles.length,
                               itemBuilder: (_, i) => ChatBubbleWidget(
                                 bubble: _bubbles[i],
+                                onRetry: _isGenerating
+                                    ? null
+                                    : () => _regenerateAt(i),
+                                onRegenerate: _isGenerating
+                                    ? null
+                                    : () => _regenerateAt(i),
                               ),
                             ),
                     ),
                     SafeArea(
                       top: false,
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _inputController,
-                                minLines: 1,
-                                maxLines: 4,
-                                textInputAction: TextInputAction.send,
-                                onSubmitted: (_) => _sendMessage(),
-                                decoration: const InputDecoration(
-                                  hintText: 'Message Edged...',
+                        padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 6, 4),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.surfaceContainerDark
+                                : AppColors.surfaceContainer,
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: (Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? AppColors.outlineDark
+                                      : AppColors.outline)
+                                  .withValues(alpha: 0.75),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _inputController,
+                                  minLines: 1,
+                                  maxLines: 4,
+                                  textInputAction: TextInputAction.send,
+                                  onSubmitted: (_) => _sendMessage(),
+                                  decoration: const InputDecoration(
+                                    hintText: 'Message Edged...',
+                                    filled: false,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton.filled(
-                              onPressed:
-                                  _isGenerating ? _stopGeneration : _sendMessage,
-                              icon: Icon(
-                                _isGenerating
-                                    ? Icons.stop_rounded
-                                    : Icons.send_rounded,
+                              const SizedBox(width: 6),
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: _isGenerating
+                                      ? null
+                                      : AppColors.brandGradient,
+                                  color: _isGenerating
+                                      ? Theme.of(context).colorScheme.error
+                                      : null,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: IconButton(
+                                  onPressed: _isGenerating
+                                      ? _stopGeneration
+                                      : _sendMessage,
+                                  color: Colors.white,
+                                  icon: Icon(
+                                    _isGenerating
+                                        ? Icons.stop_rounded
+                                        : Icons.arrow_upward_rounded,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

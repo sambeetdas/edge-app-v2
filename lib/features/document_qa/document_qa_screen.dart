@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -32,6 +34,9 @@ class _DocumentQaScreenState extends ConsumerState<DocumentQaScreen> {
     super.dispose();
   }
 
+  static const MethodChannel _deviceChannel =
+      MethodChannel('com.edgedai.app/device');
+
   Future<void> _pickDocument() async {
     setState(() {
       _error = null;
@@ -39,22 +44,38 @@ class _DocumentQaScreenState extends ConsumerState<DocumentQaScreen> {
     });
 
     try {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: DocumentService.supportedExtensions,
-      );
-      if (result.isEmpty || result.single.path == null) {
-        setState(() => _isExtracting = false);
-        return;
-      }
-
       final tier = ref.read(activeModelTierProvider);
       final maxCtx = tier?.maxContextTokens ?? 2048;
 
-      final extracted = await ref.read(documentServiceProvider).extractAndFit(
-            file: File(result.single.path!),
-            modelMaxContextTokens: maxCtx,
-          );
+      final ExtractedDocument extracted;
+      if (!kIsWeb && Platform.isAndroid) {
+        final raw = await _deviceChannel.invokeMapMethod<String, dynamic>(
+          'pickDocument',
+        );
+        if (raw == null) {
+          setState(() => _isExtracting = false);
+          return;
+        }
+        final name = (raw['name'] as String?) ?? 'document';
+        final bytes = raw['bytes'] as Uint8List;
+        extracted = await ref.read(documentServiceProvider).extractAndFitBytes(
+              fileName: name,
+              bytes: bytes,
+              modelMaxContextTokens: maxCtx,
+            );
+      } else {
+        final picked = await FilePicker.pickFile(type: FileType.any);
+        if (picked == null) {
+          setState(() => _isExtracting = false);
+          return;
+        }
+        final bytes = await picked.readAsBytes();
+        extracted = await ref.read(documentServiceProvider).extractAndFitBytes(
+              fileName: picked.name,
+              bytes: bytes,
+              modelMaxContextTokens: maxCtx,
+            );
+      }
 
       if (!mounted) return;
       setState(() {
@@ -141,13 +162,49 @@ class _DocumentQaScreenState extends ConsumerState<DocumentQaScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          FilledButton.tonalIcon(
-            onPressed: _isExtracting ? null : _pickDocument,
-            icon: const Icon(Icons.upload_file_rounded),
-            label: Text(
-              _isExtracting
-                  ? 'Extracting text…'
-                  : 'Pick Document (.txt, .md, .docx, .pdf)',
+          Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: _isExtracting ? null : _pickDocument,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer
+                            .withValues(alpha: 0.75),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.upload_file_rounded,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _isExtracting
+                          ? 'Extracting document text…'
+                          : 'Tap to pick a document',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Supports .txt, .md, .docx, and .pdf up to 10 MB',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           if (doc != null) ...[

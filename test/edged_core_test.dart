@@ -1,22 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:edged/data/services/auth_service.dart';
-import 'package:edged/data/services/games_service.dart';
 import 'package:edged/engine/models/chat_models.dart';
 import 'package:edged/engine/models/model_tier.dart';
 import 'package:edged/engine/models/prompt_format.dart';
 import 'package:edged/engine/services/skills_engine.dart';
 
 void main() {
-  test('ModelTier catalogue has all 7 tiers and recommended Qwen2.5-VL 3B', () {
+  test('ModelTier catalogue has all 7 tiers and recommended Qwen3.5 2B', () {
     expect(ModelTier.availableTiers.length, 7);
-    final rec = ModelTier.getById('qwen25-vl-3b');
+    final rec = ModelTier.getById('qwen35-2b');
     expect(rec, isNotNull);
     expect(rec!.isRecommended, isTrue);
-    expect(rec.supportsVision, isTrue);
+    expect(rec.supportsVision, isFalse);
     expect(rec.supportsDocumentQa, isTrue);
 
-    final lite = ModelTier.getById('smolvlm2-500m');
+    final lite = ModelTier.getById('qwen35-0.8b');
     expect(lite!.supportsDocumentQa, isFalse);
   });
 
@@ -27,12 +26,11 @@ void main() {
       suppressThinkingMode: true,
     );
     expect(prompt, contains('Hello /no_think'));
-    expect(prompt, endsWith('<|im_start|>assistant\n'));
+    expect(prompt, endsWith('<|im_start|>assistant\n<think>\n\n</think>\n\n'));
   });
 
-  test('Built-in skills and games match specification counts', () {
+  test('Built-in skills and countries match specification counts', () {
     expect(SkillsEngine.builtInSkills.length, 6);
-    expect(GamesService.builtInGames.length, 9);
     expect(AuthService.allCountries.length, 25);
   });
 }

@@ -40,6 +40,9 @@ enum PromptFormat {
           sb.writeln('<|im_end|>');
         }
         sb.write('<|im_start|>assistant\n');
+        if (suppressThinkingMode) {
+          sb.write('<think>\n\n</think>\n\n');
+        }
         break;
 
       case PromptFormat.gemma:

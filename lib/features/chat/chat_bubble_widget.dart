@@ -5,7 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 
 class ChatBubbleModel {
-  final String id;
+  String id;
   final bool isUser;
   String content;
   bool isStreaming;
@@ -29,11 +29,13 @@ class ChatBubbleModel {
 class ChatBubbleWidget extends StatelessWidget {
   final ChatBubbleModel bubble;
   final VoidCallback? onRetry;
+  final VoidCallback? onRegenerate;
 
   const ChatBubbleWidget({
     super.key,
     required this.bubble,
     this.onRetry,
+    this.onRegenerate,
   });
 
   @override
@@ -62,25 +64,33 @@ class ChatBubbleWidget extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: bubble.isUser ? null : bgColor,
+          gradient: bubble.isUser ? AppColors.brandGradient : null,
+          border: bubble.isUser
+              ? null
+              : Border.all(
+                  color: (isDark ? AppColors.outlineDark : AppColors.outline)
+                      .withValues(alpha: 0.55),
+                ),
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(18),
-            topRight: const Radius.circular(18),
-            bottomLeft: Radius.circular(bubble.isUser ? 18 : 4),
-            bottomRight: Radius.circular(bubble.isUser ? 4 : 18),
+            topLeft: const Radius.circular(20),
+            topRight: const Radius.circular(20),
+            bottomLeft: Radius.circular(bubble.isUser ? 20 : 6),
+            bottomRight: Radius.circular(bubble.isUser ? 6 : 20),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (bubble.isStreaming && !bubble.hasStartedStreaming)
+            if (bubble.isStreaming &&
+                (!bubble.hasStartedStreaming || displayContent.isEmpty))
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -110,8 +120,43 @@ class ChatBubbleWidget extends StatelessWidget {
                 displayContent,
                 style: TextStyle(
                   color: textColor,
-                  fontSize: 15,
-                  height: 1.4,
+                  fontSize: 16,
+                  height: 1.45,
+                ),
+              ),
+            if (bubble.isUser && !bubble.isStreaming && onRegenerate != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: InkWell(
+                    onTap: onRegenerate,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.refresh_rounded,
+                            size: 15,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Regenerate',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.85),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             if (!bubble.isUser && !bubble.isStreaming && displayContent.isNotEmpty)
@@ -141,25 +186,25 @@ class ChatBubbleWidget extends StatelessWidget {
                           children: [
                             Icon(
                               Icons.copy_rounded,
-                              size: 13,
-                              color: textColor.withValues(alpha: 0.65),
+                              size: 15,
+                              color: textColor.withValues(alpha: 0.7),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               'Copy',
                               style: TextStyle(
-                                fontSize: 11.5,
-                                color: textColor.withValues(alpha: 0.65),
+                                fontSize: 13,
+                                color: textColor.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    if (bubble.hasFailed && onRetry != null) ...[
+                    if ((bubble.hasFailed ? onRetry : onRegenerate) != null) ...[
                       const SizedBox(width: 10),
                       InkWell(
-                        onTap: onRetry,
+                        onTap: bubble.hasFailed ? onRetry : onRegenerate,
                         borderRadius: BorderRadius.circular(8),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
@@ -171,16 +216,22 @@ class ChatBubbleWidget extends StatelessWidget {
                             children: [
                               Icon(
                                 Icons.refresh_rounded,
-                                size: 14,
-                                color: Theme.of(context).colorScheme.error,
+                                size: 15,
+                                color: bubble.hasFailed
+                                    ? Theme.of(context).colorScheme.error
+                                    : textColor.withValues(alpha: 0.7),
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'Retry',
+                                bubble.hasFailed ? 'Retry' : 'Regenerate',
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).colorScheme.error,
+                                  fontSize: 13,
+                                  fontWeight: bubble.hasFailed
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                  color: bubble.hasFailed
+                                      ? Theme.of(context).colorScheme.error
+                                      : textColor.withValues(alpha: 0.7),
                                 ),
                               ),
                             ],

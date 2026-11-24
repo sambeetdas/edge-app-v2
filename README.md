@@ -21,4 +21,31 @@ flutter test
 flutter run
 ```
 
-> **Note on Native GGUF Inference**: `ChatEngine` connects to `MethodChannel('com.edgedai.app/llama')` and `EventChannel('com.edgedai.app/llama_tokens')`, and automatically falls back to an offline preview streamer if the native `llama.cpp` AAR/XCFramework is not yet bundled.
+> **Note on Native GGUF Inference**: On Android, `ChatEngine` uses `llama_flutter_android` (`llama.cpp`) for on-device GGUF inference, and falls back to an offline preview streamer on platforms without a linked native backend.
+
+## Android Packaging (`android-pack.ps1`)
+
+Use [android-pack.ps1](android-pack.ps1) on Windows PowerShell to build signed Android packages into `dist/`:
+
+```powershell
+# Build signed release APK -> dist\Edged-v1.0.0-release.apk
+.\android-pack.ps1
+
+# Build signed release APK + Play Store AAB -> dist\Edged-v1.0.0-release.aab
+.\android-pack.ps1 -AppBundle
+
+# Build signed release APK, install via ADB, and launch on connected phone
+.\android-pack.ps1 -Install
+
+# Build debug APK -> dist\Edged-debug.apk (can combine with -Install)
+.\android-pack.ps1 -Debug
+.\android-pack.ps1 -Debug -Install
+```
+
+### Flags
+- `-Debug`: Builds a debug APK instead of a release APK.
+- `-Install`: Runs `adb install -r` on the built APK and launches `com.edgedai.app/.MainActivity`.
+- `-AppBundle`: Also runs `flutter build appbundle --release` and copies `dist\Edged-v1.0.0-release.aab` for Google Play Store upload (ignored when `-Debug` is set).
+
+### Release Signing
+Release builds (`APK` and `AAB`) are signed using `android/key.properties` (pointing to `android/upload-keystore.jks`) when present, or fall back to the debug keystore if `android/key.properties` is missing.
