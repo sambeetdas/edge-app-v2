@@ -52,6 +52,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       appBar: AppBar(
         title: const Text('Chats'),
         actions: [
+          IconButton(
+            tooltip: 'Proactive Assistant & Reminders',
+            icon: const Icon(Icons.notifications_active_outlined),
+            onPressed: () => context.push('/proactive'),
+          ),
           if (tier != null)
             Padding(
               padding: const EdgeInsets.only(right: 12),

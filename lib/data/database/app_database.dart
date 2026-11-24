@@ -11,7 +11,7 @@ class AppDatabase {
     final dbPath = p.join(dir.path, 'edge_chat.db');
     _db = await openDatabase(
       dbPath,
-      version: 1,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE ChatSessionEntity (
@@ -63,8 +63,59 @@ class AppDatabase {
             CreatedAt TEXT NOT NULL
           )
         ''');
+
+        await _createKnowledgeTables(db);
+        await _createProactiveTables(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await _createKnowledgeTables(db);
+        }
+        if (oldVersion < 3) {
+          await _createProactiveTables(db);
+        }
+      },
+      onOpen: (db) async {
+        await _createKnowledgeTables(db);
+        await _createProactiveTables(db);
       },
     );
     return _db!;
+  }
+
+  Future<void> _createProactiveTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ProactiveReminderEntity (
+        Id TEXT PRIMARY KEY,
+        Title TEXT NOT NULL,
+        TriggerAt TEXT NOT NULL,
+        IsCompleted INTEGER NOT NULL DEFAULT 0,
+        CreatedAt TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _createKnowledgeTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS KnowledgeDocumentEntity (
+        Id TEXT PRIMARY KEY,
+        FileName TEXT NOT NULL,
+        FileSizeBytes INTEGER NOT NULL,
+        ChunkCount INTEGER NOT NULL,
+        CreatedAt TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS KnowledgeChunkEntity (
+        Id TEXT PRIMARY KEY,
+        DocumentId TEXT NOT NULL,
+        FileName TEXT NOT NULL,
+        ChunkIndex INTEGER NOT NULL,
+        Content TEXT NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_knowledge_chunk_doc ON KnowledgeChunkEntity (DocumentId)',
+    );
   }
 }

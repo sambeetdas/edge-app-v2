@@ -46,26 +46,25 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           selectedIcon: Icons.chat_bubble_rounded,
           page: ChatListScreen(),
         ),
+        if (tier.supportsDocumentQa)
+          const _ShellTab(
+            label: 'Knowledge',
+            icon: Icons.library_books_outlined,
+            selectedIcon: Icons.library_books_rounded,
+            page: DocumentQaScreen(),
+          ),
+        const _ShellTab(
+          label: 'Scan',
+          icon: Icons.document_scanner_outlined,
+          selectedIcon: Icons.document_scanner_rounded,
+          page: ImageQaScreen(),
+        ),
         const _ShellTab(
           label: 'Skills',
           icon: Icons.auto_awesome_outlined,
           selectedIcon: Icons.auto_awesome_rounded,
           page: SkillsScreen(),
         ),
-        if (tier.supportsVision)
-          const _ShellTab(
-            label: 'Image',
-            icon: Icons.image_search_outlined,
-            selectedIcon: Icons.image_search_rounded,
-            page: ImageQaScreen(),
-          ),
-        if (tier.supportsDocumentQa)
-          const _ShellTab(
-            label: 'Docs',
-            icon: Icons.description_outlined,
-            selectedIcon: Icons.description_rounded,
-            page: DocumentQaScreen(),
-          ),
       ],
       const _ShellTab(
         label: 'Settings',

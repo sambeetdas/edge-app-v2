@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/structured_response_card.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/model_loader_helper.dart';
 
@@ -19,8 +20,10 @@ class _ImageQaScreenState extends ConsumerState<ImageQaScreen> {
   final _picker = ImagePicker();
   final _questionCtrl = TextEditingController();
   File? _selectedImage;
+  String? _ocrText;
   String _answer = '';
   bool _isAsking = false;
+  bool _isScanning = false;
   String? _error;
 
   @override
@@ -37,13 +40,28 @@ class _ImageQaScreenState extends ConsumerState<ImageQaScreen> {
         imageQuality: 85,
       );
       if (picked == null || !mounted) return;
+      final file = File(picked.path);
       setState(() {
-        _selectedImage = File(picked.path);
+        _selectedImage = file;
+        _ocrText = null;
         _answer = '';
         _error = null;
+        _isScanning = true;
       });
-    } catch (e) {
-      if (mounted) setState(() => _error = 'Failed to pick image: $e');
+      final ocr = await ref.read(visionEngineProvider).extractText(file);
+      if (!mounted) return;
+      setState(() {
+        _ocrText = ocr;
+        _isScanning = false;
+      });
+    } catch (e, st) {
+      debugPrint('Scan image error: $e\n$st');
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to scan image: $e';
+          _isScanning = false;
+        });
+      }
     }
   }
 
@@ -69,12 +87,15 @@ class _ImageQaScreenState extends ConsumerState<ImageQaScreen> {
             imageFile: file,
             question: question,
             mmProjPath: info?.mmProjPath,
+            preExtractedText: _ocrText,
           )) {
         sb.write(token);
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         if (nowMs - lastUiMs >= 80) {
           lastUiMs = nowMs;
-          if (mounted) setState(() => _answer = sb.toString());
+          if (mounted) {
+            setState(() => _answer = Formatters.stripMarkdown(sb.toString()));
+          }
         }
       }
 
@@ -98,7 +119,7 @@ class _ImageQaScreenState extends ConsumerState<ImageQaScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Image Q&A')),
+      appBar: AppBar(title: const Text('Scan & Receipt OCR')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -162,6 +183,42 @@ class _ImageQaScreenState extends ConsumerState<ImageQaScreen> {
                 ),
               ),
             ),
+          if (_isScanning) ...[
+            const SizedBox(height: 12),
+            const LinearProgressIndicator(),
+          ] else if (_ocrText != null) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  _ocrText!.isEmpty
+                      ? 'No text detected via offline OCR.'
+                      : 'Offline OCR detected ${_ocrText!.length} chars.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final prompt in const [
+                  'Extract total, date, and merchant',
+                  'List all items and prices',
+                  'Summarize this text',
+                ])
+                  ActionChip(
+                    label: Text(prompt),
+                    onPressed: () {
+                      _questionCtrl.text = prompt;
+                      _ask();
+                    },
+                  ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           TextField(
             controller: _questionCtrl,
@@ -183,14 +240,10 @@ class _ImageQaScreenState extends ConsumerState<ImageQaScreen> {
           ],
           if (_answer.isNotEmpty) ...[
             const SizedBox(height: 18),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: SelectableText(
-                  _answer,
-                  style: const TextStyle(fontSize: 15, height: 1.45),
-                ),
-              ),
+            StructuredResponseCard(
+              title: 'Scan Result',
+              icon: Icons.document_scanner_outlined,
+              text: _answer,
             ),
           ],
         ],

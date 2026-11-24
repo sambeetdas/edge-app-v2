@@ -100,6 +100,14 @@ void main() {
         throwsException,
       );
     });
+
+    test('DocumentService.chunkText splits long text with overlap', () {
+      final docService = DocumentService();
+      final text = List.generate(300, (i) => 'sentence$i.').join(' ');
+      final chunks = docService.chunkText(text, chunkChars: 400, overlapChars: 60);
+      expect(chunks.length, greaterThan(2));
+      expect(chunks.every((c) => c.length <= 405), isTrue);
+    });
   });
 
   group('DeviceCompatibilityReport', () {

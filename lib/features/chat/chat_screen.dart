@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/formatters.dart';
 import '../../core/widgets/edged_logo.dart';
 import '../../engine/models/chat_models.dart';
 import '../../providers/app_providers.dart';
@@ -27,6 +28,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String _title = 'New Chat';
   bool _isLoading = true;
   bool _isGenerating = false;
+  bool _voiceReplyEnabled = false;
+  bool _isListening = false;
   String? _loadError;
   Timer? _thinkingTimer;
   Timer? _timeoutTimer;
@@ -43,6 +46,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _timeoutTimer?.cancel();
     _inputController.dispose();
     _scrollController.dispose();
+    ref.read(voiceServiceProvider).dispose();
     super.dispose();
   }
 
@@ -217,12 +221,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
 
     final sb = StringBuffer();
+    final speechBuffer = StringBuffer();
     int lastUiMs = DateTime.now().millisecondsSinceEpoch;
 
     try {
       await for (final token
           in ref.read(chatEngineProvider).generateStream(request)) {
         sb.write(token);
+        if (_voiceReplyEnabled) {
+          speechBuffer.write(token);
+          final pending = Formatters.stripMarkdown(speechBuffer.toString());
+          if (RegExp(r'[.!?]\s*$').hasMatch(pending) && pending.length >= 16) {
+            speechBuffer.clear();
+            unawaited(ref.read(voiceServiceProvider).speak(pending));
+          }
+        }
         if (!streamingBubble.hasStartedStreaming) {
           streamingBubble.hasStartedStreaming = true;
         }
@@ -233,6 +246,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             setState(() => streamingBubble.content = sb.toString());
             _scrollToBottom();
           }
+        }
+      }
+
+      if (_voiceReplyEnabled && speechBuffer.isNotEmpty) {
+        final tail = Formatters.stripMarkdown(speechBuffer.toString());
+        if (tail.isNotEmpty) {
+          unawaited(ref.read(voiceServiceProvider).speak(tail));
         }
       }
 
@@ -276,13 +296,74 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   void _stopGeneration() {
     ref.read(chatEngineProvider).stopGeneration();
+    ref.read(voiceServiceProvider).stopSpeaking();
     setState(() => _isGenerating = false);
+  }
+
+  Future<void> _toggleListening() async {
+    final voice = ref.read(voiceServiceProvider);
+    if (_isGenerating) {
+      _stopGeneration();
+    }
+    if (_isListening) {
+      await voice.stopListening();
+      if (mounted) setState(() => _isListening = false);
+      return;
+    }
+
+    final started = await voice.startListening(
+      onResult: (text, isFinal) {
+        if (!mounted) return;
+        setState(() {
+          _inputController.text = text;
+          _inputController.selection = TextSelection.fromPosition(
+            TextPosition(offset: text.length),
+          );
+          if (isFinal) {
+            _isListening = false;
+          }
+        });
+        if (isFinal && text.trim().isNotEmpty) {
+          _sendMessage();
+        }
+      },
+    );
+
+    if (!mounted) return;
+    if (!started) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Offline speech recognition is unavailable on this device.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _isListening = true);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_title)),
+      appBar: AppBar(
+        title: Text(_title),
+        actions: [
+          IconButton(
+            tooltip: _voiceReplyEnabled ? 'Mute voice replies' : 'Speak replies offline',
+            icon: Icon(
+              _voiceReplyEnabled
+                  ? Icons.volume_up_rounded
+                  : Icons.volume_off_rounded,
+            ),
+            onPressed: () {
+              final next = !_voiceReplyEnabled;
+              if (!next) {
+                ref.read(voiceServiceProvider).stopSpeaking();
+              }
+              setState(() => _voiceReplyEnabled = next);
+            },
+          ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _loadError != null
@@ -421,7 +502,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              IconButton(
+                                tooltip: _isListening ? 'Stop listening' : 'Voice input (offline)',
+                                onPressed: _toggleListening,
+                                color: _isListening
+                                    ? Theme.of(context).colorScheme.error
+                                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                                icon: Icon(
+                                  _isListening
+                                      ? Icons.mic_rounded
+                                      : Icons.mic_none_rounded,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
                               Container(
                                 decoration: BoxDecoration(
                                   gradient: _isGenerating

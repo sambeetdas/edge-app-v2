@@ -8,12 +8,15 @@ import '../data/services/chat_history_service.dart';
 import '../data/services/custom_skills_service.dart';
 import '../data/services/device_service.dart';
 import '../data/services/document_service.dart';
+import '../data/services/knowledge_service.dart';
+import '../data/services/proactive_service.dart';
 import '../engine/models/chat_models.dart';
 import '../engine/models/model_tier.dart';
 import '../engine/services/chat_engine.dart';
 import '../engine/services/model_manager.dart';
 import '../engine/services/skills_engine.dart';
 import '../engine/services/vision_engine.dart';
+import '../engine/services/voice_service.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) => AppDatabase());
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
@@ -28,6 +31,8 @@ final visionEngineProvider = Provider<VisionEngine>(
   (ref) => VisionEngine(ref.watch(chatEngineProvider)),
 );
 
+final voiceServiceProvider = Provider<VoiceService>((ref) => VoiceService());
+
 final chatHistoryServiceProvider = Provider<ChatHistoryService>(
   (ref) => ChatHistoryService(ref.watch(appDatabaseProvider)),
 );
@@ -40,8 +45,19 @@ final documentServiceProvider = Provider<DocumentService>(
   (ref) => DocumentService(),
 );
 
+final knowledgeServiceProvider = Provider<KnowledgeService>(
+  (ref) => KnowledgeService(
+    ref.watch(appDatabaseProvider),
+    ref.watch(documentServiceProvider),
+  ),
+);
+
 final deviceServiceProvider = Provider<DeviceService>(
   (ref) => DeviceService(),
+);
+
+final proactiveServiceProvider = Provider<ProactiveService>(
+  (ref) => ProactiveService(ref.watch(appDatabaseProvider)),
 );
 
 class DownloadedModelNotifier extends AsyncNotifier<DownloadedModelInfo?> {

@@ -144,8 +144,9 @@ void main() {
 
     // 5. Capability-gated tabs are now unlocked
     expect(find.text('Chats'), findsWidgets);
+    expect(find.text('Knowledge'), findsOneWidget);
+    expect(find.text('Scan'), findsOneWidget);
     expect(find.text('Skills'), findsOneWidget);
-    expect(find.text('Docs'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
 
     // 6. AI Chat E2E

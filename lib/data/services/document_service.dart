@@ -114,6 +114,77 @@ class DocumentService {
     );
   }
 
+  /// Extracts full text from [bytes] and splits it into overlapping chunks for offline RAG.
+  List<String> extractChunksFromBytes({
+    required String fileName,
+    required Uint8List bytes,
+    int chunkChars = 1100,
+    int overlapChars = 150,
+  }) {
+    if (bytes.length > maxFileSizeBytes) {
+      throw Exception('File exceeds the 10 MB limit.');
+    }
+    final ext = p.extension(fileName).toLowerCase().replaceFirst('.', '');
+    if (!supportedExtensions.contains(ext)) {
+      throw Exception(
+        'Unsupported file type ".$ext". Supported: .txt, .md, .docx, .pdf',
+      );
+    }
+
+    String text;
+    switch (ext) {
+      case 'txt':
+      case 'md':
+        text = utf8.decode(bytes, allowMalformed: true);
+        break;
+      case 'docx':
+        text = _extractDocxBytes(bytes);
+        break;
+      case 'pdf':
+        text = _extractPdfBytes(bytes);
+        break;
+      default:
+        throw Exception('Unsupported file format.');
+    }
+
+    text = text.trim();
+    if (text.isEmpty) {
+      throw Exception(
+        'No extractable text found. Scanned or image-only PDFs are not supported.',
+      );
+    }
+    return chunkText(text, chunkChars: chunkChars, overlapChars: overlapChars);
+  }
+
+  List<String> chunkText(
+    String text, {
+    int chunkChars = 1100,
+    int overlapChars = 150,
+  }) {
+    final normalized = text.replaceAll(RegExp(r'\r\n?'), '\n').trim();
+    if (normalized.isEmpty) return const [];
+    if (normalized.length <= chunkChars) return [normalized];
+
+    final chunks = <String>[];
+    var start = 0;
+    while (start < normalized.length) {
+      var end = (start + chunkChars).clamp(0, normalized.length);
+      if (end < normalized.length) {
+        final breakAt = normalized.lastIndexOf(RegExp(r'[\n.!? ]'), end);
+        if (breakAt > start + (chunkChars ~/ 2)) {
+          end = breakAt + 1;
+        }
+      }
+      final slice = normalized.substring(start, end).trim();
+      if (slice.isNotEmpty) {
+        chunks.add(slice);
+      }
+      if (end >= normalized.length) break;
+      start = (end - overlapChars).clamp(start + 1, normalized.length);
+    }
+    return chunks;
+  }
+
   String _extractDocxBytes(Uint8List bytes) {
     final archive = ZipDecoder().decodeBytes(bytes);
     final docEntry = archive.findFile('word/document.xml');

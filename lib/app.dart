@@ -7,6 +7,7 @@ import 'providers/app_providers.dart';
 import 'features/auth/phone_sign_in_screen.dart';
 import 'features/auth/pin_verification_screen.dart';
 import 'features/chat/chat_screen.dart';
+import 'features/proactive/proactive_screen.dart';
 import 'features/settings/model_download_screen.dart';
 import 'features/settings/model_selection_screen.dart';
 import 'features/shell/main_shell_screen.dart';
@@ -54,6 +55,10 @@ GoRouter createAppRouter({String initialLocation = '/loading'}) => GoRouter(
     GoRoute(
       path: '/skills/create',
       builder: (_, __) => const CreateSkillScreen(),
+    ),
+    GoRoute(
+      path: '/proactive',
+      builder: (_, __) => const ProactiveScreen(),
     ),
     GoRoute(
       path: '/models',

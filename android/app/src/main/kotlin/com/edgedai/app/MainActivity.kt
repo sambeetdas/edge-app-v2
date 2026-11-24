@@ -87,6 +87,7 @@ class MainActivity : FlutterActivity() {
                         pendingDocResult = result
                         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                             addCategory(Intent.CATEGORY_OPENABLE)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             type = "*/*"
                         }
                         startActivityForResult(intent, pickDocRequestCode)
@@ -111,44 +112,95 @@ class MainActivity : FlutterActivity() {
         val uri = data.data!!
         Thread {
             try {
-                val name = queryDisplayName(uri) ?: "document"
-                val maxBytes = 10 * 1024 * 1024
-                val out = ByteArrayOutputStream()
-                val input = contentResolver.openInputStream(uri)
-                    ?: throw java.io.FileNotFoundException("Cannot open selected file.")
-                input.use { stream ->
-                    val buf = ByteArray(32 * 1024)
-                    var total = 0
-                    while (true) {
-                        val read = stream.read(buf)
-                        if (read <= 0) break
-                        total += read
-                        if (total > maxBytes) {
-                            throw IllegalArgumentException("File exceeds the 10 MB limit.")
-                        }
-                        out.write(buf, 0, read)
+                var name = queryDisplayName(uri) ?: "document"
+                if (!name.contains('.')) {
+                    val mime = contentResolver.getType(uri)
+                    val ext = when (mime) {
+                        "application/pdf" -> ".pdf"
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> ".docx"
+                        "text/markdown" -> ".md"
+                        "text/plain" -> ".txt"
+                        else -> ""
                     }
+                    if (ext.isNotEmpty()) name += ext
                 }
-                val bytes = out.toByteArray()
+                val maxBytes = 10 * 1024 * 1024
+                val tempFile = java.io.File.createTempFile("picked_", "_doc", cacheDir)
+                val input = openDocumentStream(uri, onConvertedExtension = { ext ->
+                    if (!name.endsWith(ext, ignoreCase = true)) {
+                        name = "$name$ext"
+                    }
+                })
+                try {
+                    input.use { stream ->
+                        tempFile.outputStream().use { out ->
+                            val buf = ByteArray(32 * 1024)
+                            var total = 0
+                            while (true) {
+                                val read = stream.read(buf)
+                                if (read <= 0) break
+                                total += read
+                                if (total > maxBytes) {
+                                    throw IllegalArgumentException("File exceeds the 10 MB limit.")
+                                }
+                                out.write(buf, 0, read)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    tempFile.delete()
+                    throw e
+                }
+                val filePath = tempFile.absolutePath
                 runOnUiThread {
                     callback.success(
                         mapOf(
                             "name" to name,
-                            "bytes" to bytes,
+                            "path" to filePath,
                         )
                     )
                 }
             } catch (e: Exception) {
+                android.util.Log.e("EdgedDocPicker", "Failed to open document uri=$uri", e)
                 runOnUiThread {
+                    val detail = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
                     val msg = if (e is java.io.FileNotFoundException) {
-                        "File could not be opened. Try picking it from Downloads or Internal Storage."
+                        "File could not be opened ($detail). Try picking it from Downloads or Internal Storage."
                     } else {
-                        e.message ?: "Failed to read selected file."
+                        detail
                     }
                     callback.error("doc_read_error", msg, null)
                 }
             }
         }.start()
+    }
+
+    private fun openDocumentStream(
+        uri: Uri,
+        onConvertedExtension: (String) -> Unit,
+    ): java.io.InputStream {
+        try {
+            contentResolver.openInputStream(uri)?.let { return it }
+        } catch (_: Exception) {
+        }
+        try {
+            contentResolver.openAssetFileDescriptor(uri, "r")?.createInputStream()?.let { return it }
+        } catch (_: Exception) {
+        }
+        val streamTypes = contentResolver.getStreamTypes(uri, "*/*") ?: emptyArray()
+        for (mime in listOf("application/pdf", "text/plain")) {
+            if (streamTypes.isEmpty() || streamTypes.any { it == mime || it == "*/*" }) {
+                try {
+                    val afd = contentResolver.openTypedAssetFileDescriptor(uri, mime, null)
+                    if (afd != null) {
+                        onConvertedExtension(if (mime == "application/pdf") ".pdf" else ".txt")
+                        return afd.createInputStream()
+                    }
+                } catch (_: Exception) {
+                }
+            }
+        }
+        throw java.io.FileNotFoundException("Cannot open stream for URI")
     }
 
     private fun queryDisplayName(uri: Uri): String? {
