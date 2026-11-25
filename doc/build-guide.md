@@ -202,4 +202,4 @@ Create a singleton `AppDatabase` managing `edge_chat.db` at `version: 3` with 7 
    ```powershell
    adb install -r "dist\Edged-v1.0.0-release.apk"
    ```
-4. Upload `dist\Edged-v1.0.0-release.aab` and the assets in `doc\play_store_assets\` to Google Play Console (Closed testing with 12+ testers for 14 days → Production).
+4. Upload `dist\Edged-v1.0.0-release.aab` and the assets in `dist\play_store_assets\` to Google Play Console (Closed testing with 12+ testers for 14 days → Production).
