@@ -49,3 +49,30 @@ Use [android-pack.ps1](android-pack.ps1) on Windows PowerShell to build signed A
 
 ### Release Signing
 Release builds (`APK` and `AAB`) are signed using `android/key.properties` (pointing to `android/upload-keystore.jks`) when present, or fall back to the debug keystore if `android/key.properties` is missing.
+
+## Open-Source Libraries & Credits
+
+### On-Device AI, Voice, OCR & Background
+- **`llama_flutter_android`** (`llama.cpp` Android bindings) — On-device GGUF LLM inference
+- **`speech_to_text`** — On-device English Speech-to-Text
+- **`flutter_tts`** — Local Text-to-Speech synthesis
+- **`google_mlkit_text_recognition`** — On-device ML Kit Latin OCR for Scan & Receipt Q&A
+- **`workmanager`** — Offline periodic background tasks
+- **`flutter_local_notifications`** — Local reminder & daily briefing notifications
+
+### Storage, Networking, Documents & Platform
+- **`flutter_riverpod`** — State management & dependency injection
+- **`go_router`** — Declarative navigation & route guards
+- **`sqflite`**, **`path`**, **`path_provider`** — Local SQLite database (`edge_chat.db`) & file paths
+- **`flutter_secure_storage`** — Encrypted local PIN & session storage
+- **`dio`** — Resumable HTTP model downloads (`.part` Range support)
+- **`syncfusion_flutter_pdf`** — Offline PDF text extraction *(Syncfusion Community License)*
+- **`archive`**, **`xml`** — Offline `.docx` (`word/document.xml`) extraction
+- **`file_picker`**, **`image_picker`** — Document & Photo Picker / camera integration
+- **`device_info_plus`**, **`battery_plus`**, **`wakelock_plus`** — Device RAM/battery probing & download wakelock
+- **`google_fonts`**, **`intl`**, **`uuid`**, **`url_launcher`**, **`cupertino_icons`** — Typography, formatting, IDs, links & icons
+
+### Open-Weight Models (User-Downloaded)
+- **Qwen3.5** (Alibaba / Unsloth & ggml-org GGUF quantizations)
+- **Phi-4-mini** (Microsoft / Unsloth GGUF quantization)
+- **Gemma 3n** (Google / Unsloth GGUF quantizations)
