@@ -7,6 +7,11 @@
 
 ## Part 1: Why Each Library & Design Decision Was Chosen
 
+### Why Flutter & Dart?
+- **Single Codebase for Android & iOS**: One Dart codebase drives both platforms with near-native ARM64 AOT performance and smooth 60–120 fps streaming UI (`ListView`, `CustomPainter`, Material 3).
+- **Clean Native Interop**: Flutter's `MethodChannel` (`com.edgedai.app/device`) and plugin ecosystem (`llama_flutter_android`, `google_mlkit_text_recognition`, `speech_to_text`) make it straightforward to run C++/Kotlin/Swift code for RAM probing, GGUF inference, and document streaming while keeping all business logic in Dart.
+- **Fast Iteration & Testing**: Hot reload speeds up UI polish, and pure-Dart services (`DocumentService`, `KnowledgeService`, `PromptFormat`) can be unit-tested in milliseconds with `flutter test`.
+
 Before writing code, it helps to understand **why** this stack works cleanly together on mobile:
 
 | Area | Library / Approach Chosen | Why We Chose It (and What We Avoided) |
