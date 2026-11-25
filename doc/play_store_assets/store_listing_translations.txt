@@ -1,0 +1,21 @@
+Language: en-US (English - United States)
+
+App name:
+Edged - Offline AI Assistant
+
+Short description:
+100% offline AI chat, voice, document Q&A, receipt OCR & smart reminders.
+
+Full description:
+Edged is your private, 100% offline on-device AI assistant. Everything runs locally on your phone—no cloud accounts, no tracking, and no internet required after model setup.
+
+Key Features:
+• Private AI Chat: Fast, streaming conversations powered by on-device language models stored locally on your device.
+• Offline Voice Mode: Speak naturally with on-device speech-to-text, listen to spoken replies, and interrupt anytime.
+• Personal Knowledge Base: Index PDF, DOCX, Markdown, and TXT files locally and ask questions with inline source citations.
+• Scan & Receipt OCR: Capture or pick images and receipts to extract text offline and ask instant follow-up questions.
+• Proactive Assistant: Generate on-device daily briefings and schedule local reminders that notify you without cloud servers.
+• Built-in & Custom Skills: Run ready-to-use workflows like Summarizer, Translator, Code Explainer, Grammar Fixer, and more—or create your own.
+
+Privacy First:
+Your chats, documents, scans, and reminders stay strictly on your device. Internet is only used when you choose to download an open-source AI model.
