@@ -182,7 +182,7 @@ class _ModelSelectionScreenState extends ConsumerState<ModelSelectionScreen> {
                       ),
                     ),
                   ),
-                  if (isBestForDevice || tier.isRecommended)
+                  if (isBestForDevice)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -192,11 +192,9 @@ class _ModelSelectionScreenState extends ConsumerState<ModelSelectionScreen> {
                         color: theme.colorScheme.primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        isBestForDevice
-                            ? '⭐ Best for Device'
-                            : '⭐ Recommended',
-                        style: const TextStyle(
+                      child: const Text(
+                        '⭐ Best for Device',
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
