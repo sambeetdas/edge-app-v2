@@ -144,37 +144,8 @@ class ModelManager {
       await WakelockPlus.enable();
     } catch (_) {}
 
-    if (Platform.isAndroid) {
-      try {
-        await _deviceChannel.invokeMethod('requestNotificationPermission');
-        await _deviceChannel.invokeMethod('startDownloadService', {
-          'title': 'Downloading ${tier.displayName}',
-        });
-      } catch (_) {}
-    }
-
     final dir = await _modelsDirectory();
     final totalExpected = tier.totalDownloadBytes;
-    int lastNotifiedPct = -1;
-    DateTime lastNotifyTime = DateTime.fromMillisecondsSinceEpoch(0);
-
-    void notifyBackgroundProgress(int bytesReceived, String label) {
-      if (!Platform.isAndroid || totalExpected <= 0) return;
-      final pct = ((bytesReceived / totalExpected) * 100).clamp(0, 100).round();
-      final now = DateTime.now();
-      if (pct == lastNotifiedPct &&
-          now.difference(lastNotifyTime).inMilliseconds < 800) {
-        return;
-      }
-      lastNotifiedPct = pct;
-      lastNotifyTime = now;
-      final receivedMb = (bytesReceived / (1024 * 1024)).toStringAsFixed(0);
-      final totalMb = (totalExpected / (1024 * 1024)).toStringAsFixed(0);
-      _deviceChannel.invokeMethod('updateDownloadProgress', {
-        'progress': pct,
-        'subtext': '$pct% ($receivedMb / $totalMb MB) • $label',
-      }).catchError((_) {});
-    }
 
     try {
       // 1. Download main model
@@ -184,7 +155,6 @@ class ModelManager {
         destination: modelFile,
         cancelToken: cancelToken,
         onProgress: (received, _) {
-          notifyBackgroundProgress(received, tier.modelFileName);
           if (!controller.isClosed) {
             controller.add(
               DownloadProgress(
@@ -207,7 +177,6 @@ class ModelManager {
           cancelToken: cancelToken,
           onProgress: (received, _) {
             final totalReceived = tier.modelSizeBytes + received;
-            notifyBackgroundProgress(totalReceived, tier.mmProjFileName!);
             if (!controller.isClosed) {
               controller.add(
                 DownloadProgress(
@@ -274,11 +243,6 @@ class ModelManager {
         );
       }
     } finally {
-      if (Platform.isAndroid) {
-        try {
-          await _deviceChannel.invokeMethod('stopDownloadService');
-        } catch (_) {}
-      }
       try {
         await WakelockPlus.disable();
       } catch (_) {}

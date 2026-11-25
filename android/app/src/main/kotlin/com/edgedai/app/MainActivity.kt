@@ -48,37 +48,6 @@ class MainActivity : FlutterActivity() {
                         }
                         result.success(true)
                     }
-                    "startDownloadService" -> {
-                        val title = call.argument<String>("title") ?: "Downloading AI model"
-                        val intent = Intent(this, ModelDownloadService::class.java).apply {
-                            action = ModelDownloadService.ACTION_START
-                            putExtra(ModelDownloadService.EXTRA_TITLE, title)
-                        }
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(intent)
-                        } else {
-                            startService(intent)
-                        }
-                        result.success(true)
-                    }
-                    "updateDownloadProgress" -> {
-                        val progress = call.argument<Int>("progress") ?: -1
-                        val subtext = call.argument<String>("subtext") ?: ""
-                        val intent = Intent(this, ModelDownloadService::class.java).apply {
-                            action = ModelDownloadService.ACTION_UPDATE
-                            putExtra(ModelDownloadService.EXTRA_PROGRESS, progress)
-                            putExtra(ModelDownloadService.EXTRA_SUBTEXT, subtext)
-                        }
-                        startService(intent)
-                        result.success(true)
-                    }
-                    "stopDownloadService" -> {
-                        val intent = Intent(this, ModelDownloadService::class.java).apply {
-                            action = ModelDownloadService.ACTION_STOP
-                        }
-                        startService(intent)
-                        result.success(true)
-                    }
                     "pickDocument" -> {
                         if (pendingDocResult != null) {
                             result.error("already_active", "Document picker is already open.", null)
