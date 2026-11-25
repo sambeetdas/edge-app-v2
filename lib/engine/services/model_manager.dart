@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -13,8 +12,6 @@ import '../models/model_tier.dart';
 
 class ModelManager {
   static const String _metaFileName = 'prompter_model_meta.json';
-  static const MethodChannel _deviceChannel =
-      MethodChannel('com.edgedai.app/device');
   final Dio _dio;
   CancelToken? _activeCancelToken;
 

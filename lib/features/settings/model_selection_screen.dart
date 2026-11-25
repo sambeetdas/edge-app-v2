@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/utils/formatters.dart';
 import '../../data/services/device_service.dart';
 import '../../engine/models/model_tier.dart';
 import '../../providers/app_providers.dart';
@@ -29,32 +30,99 @@ class _ModelSelectionScreenState extends ConsumerState<ModelSelectionScreen> {
     setState(() => _report = report);
   }
 
+  ModelTier _recommendedTier(DeviceCompatibilityReport? report) {
+    if (report == null || report.totalRamGb <= 0) {
+      return ModelTier.getById('qwen35-2b') ?? ModelTier.availableTiers.first;
+    }
+
+    bool fits(ModelTier t) =>
+        report.hasEnoughRam(t.runtimeRamGb) &&
+        report.hasEnoughStorage(t.totalDownloadBytes);
+
+    const preferredOrder = ['qwen35-4b', 'qwen35-2b', 'qwen35-0.8b'];
+    if (report.effectiveRamGb < 3.0) {
+      final lite = ModelTier.getById('qwen35-0.8b');
+      if (lite != null && fits(lite)) return lite;
+    } else if (report.effectiveRamGb < 5.0) {
+      final std = ModelTier.getById('qwen35-2b');
+      if (std != null && fits(std)) return std;
+    }
+
+    for (final id in preferredOrder) {
+      final tier = ModelTier.getById(id);
+      if (tier != null && fits(tier)) return tier;
+    }
+    return ModelTier.getById('qwen35-0.8b') ?? ModelTier.availableTiers.first;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final report = _report;
+    final recommended = _recommendedTier(report);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Choose AI Model')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (report != null && report.totalRamGb > 0)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Device RAM: ${report.totalRamGb.toStringAsFixed(1)} GB '
-                '(${report.effectiveRamGb.toStringAsFixed(1)} GB usable after OS headroom)',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.colorScheme.primary.withValues(alpha: 0.25),
               ),
             ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Best for Your Device: ${recommended.displayName}',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                if (report != null && report.totalRamGb > 0)
+                  Text(
+                    'RAM: ${report.totalRamGb.toStringAsFixed(1)} GB '
+                    '(${report.effectiveRamGb.toStringAsFixed(1)} GB usable) · '
+                    'Free: ${Formatters.formatBytes(report.availableStorageBytes)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                else
+                  Text(
+                    'Balanced speed & quality for offline Chat, Voice, Knowledge RAG & Scan OCR.',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: () =>
+                      context.push('/models/download/${recommended.id}'),
+                  icon: const Icon(Icons.download_rounded, size: 18),
+                  label: Text(
+                    'Download ${recommended.displayName} (${recommended.downloadSizeLabel})',
+                  ),
+                ),
+              ],
+            ),
+          ),
           for (final category in ModelCategory.values) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -68,7 +136,14 @@ class _ModelSelectionScreenState extends ConsumerState<ModelSelectionScreen> {
             ),
             ...ModelTier.availableTiers
                 .where((t) => t.category == category)
-                .map((tier) => _buildTierCard(context, tier, report)),
+                .map(
+                  (tier) => _buildTierCard(
+                    context,
+                    tier,
+                    report,
+                    isBestForDevice: tier.id == recommended.id,
+                  ),
+                ),
           ],
         ],
       ),
@@ -78,8 +153,9 @@ class _ModelSelectionScreenState extends ConsumerState<ModelSelectionScreen> {
   Widget _buildTierCard(
     BuildContext context,
     ModelTier tier,
-    DeviceCompatibilityReport? report,
-  ) {
+    DeviceCompatibilityReport? report, {
+    required bool isBestForDevice,
+  }) {
     final theme = Theme.of(context);
     final enoughRam = report?.hasEnoughRam(tier.runtimeRamGb) ?? true;
     final enoughStorage =
@@ -106,7 +182,7 @@ class _ModelSelectionScreenState extends ConsumerState<ModelSelectionScreen> {
                       ),
                     ),
                   ),
-                  if (tier.isRecommended)
+                  if (isBestForDevice || tier.isRecommended)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -116,9 +192,11 @@ class _ModelSelectionScreenState extends ConsumerState<ModelSelectionScreen> {
                         color: theme.colorScheme.primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        '⭐ Recommended',
-                        style: TextStyle(
+                      child: Text(
+                        isBestForDevice
+                            ? '⭐ Best for Device'
+                            : '⭐ Recommended',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -141,8 +219,9 @@ class _ModelSelectionScreenState extends ConsumerState<ModelSelectionScreen> {
                 children: [
                   _badge(context, tier.downloadSizeLabel),
                   _badge(context, '${tier.minRamGb} GB+ RAM'),
-                  if (tier.supportsVision) _badge(context, 'Vision'),
-                  if (tier.supportsDocumentQa) _badge(context, 'Docs Q&A'),
+                  _badge(context, 'Scan OCR'),
+                  if (tier.supportsDocumentQa) _badge(context, 'Knowledge RAG'),
+                  if (tier.supportsVision) _badge(context, 'Pixel Vision'),
                 ],
               ),
               if (!compatible) ...[

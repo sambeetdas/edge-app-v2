@@ -19,7 +19,8 @@ class ModelDownloadScreen extends ConsumerStatefulWidget {
       _ModelDownloadScreenState();
 }
 
-class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
+class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen>
+    with WidgetsBindingObserver {
   StreamSubscription<DownloadProgress>? _sub;
   DownloadProgress _progress =
       const DownloadProgress(status: DownloadStatus.idle);
@@ -29,13 +30,29 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _startDownload());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _progress.status == DownloadStatus.error) {
+      final msg = _progress.errorMessage ?? '';
+      if (msg.contains('Connection') ||
+          msg.contains('Socket') ||
+          msg.contains('timed out') ||
+          msg.contains('HttpException')) {
+        _startDownload();
+      }
+    }
   }
 
   void _startDownload() {
@@ -68,6 +85,17 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     ref.read(modelManagerProvider).pauseDownload();
   }
 
+  String _formatDownloadError(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('connection closed') ||
+        lower.contains('connection reset') ||
+        lower.contains('socketexception') ||
+        lower.contains('timed out')) {
+      return 'Connection interrupted while in background. Tap Resume to continue.';
+    }
+    return raw.replaceAll(RegExp(r',?\s*uri\s*=\s*\S+'), '').trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     final tier = _tier;
@@ -85,69 +113,75 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text('Download ${tier.displayName}')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Icon(
-              isPausedOrError
-                  ? Icons.pause_circle_outline_rounded
-                  : Icons.cloud_download_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              tier.displayName,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Icon(
+                  isPausedOrError
+                      ? Icons.pause_circle_outline_rounded
+                      : Icons.cloud_download_outlined,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  tier.displayName,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _progress.currentFileLabel.isNotEmpty
+                      ? _progress.currentFileLabel
+                      : tier.downloadSizeLabel,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 24),
+                LinearProgressIndicator(
+                  value: _progress.fraction,
+                  minHeight: 10,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '$pct%  (${Formatters.formatBytes(_progress.bytesReceived)} / ${Formatters.formatBytes(_progress.totalBytes)})',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 24),
+                if (isDownloading)
+                  OutlinedButton.icon(
+                    onPressed: _pause,
+                    icon: const Icon(Icons.pause_rounded),
+                    label: const Text('Pause Download'),
+                  )
+                else if (isPausedOrError)
+                  FilledButton.icon(
+                    onPressed: _startDownload,
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Resume / Retry'),
                   ),
+                if (_progress.errorMessage != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _formatDownloadError(_progress.errorMessage!),
+                    textAlign: TextAlign.center,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              _progress.currentFileLabel.isNotEmpty
-                  ? _progress.currentFileLabel
-                  : tier.downloadSizeLabel,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 24),
-            LinearProgressIndicator(
-              value: _progress.fraction,
-              minHeight: 10,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '$pct%  (${Formatters.formatBytes(_progress.bytesReceived)} / ${Formatters.formatBytes(_progress.totalBytes)})',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            if (_progress.errorMessage != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _progress.errorMessage!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-            const SizedBox(height: 28),
-            if (isDownloading)
-              OutlinedButton.icon(
-                onPressed: _pause,
-                icon: const Icon(Icons.pause_rounded),
-                label: const Text('Pause Download'),
-              )
-            else if (isPausedOrError)
-              FilledButton.icon(
-                onPressed: _startDownload,
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('Resume / Retry'),
-              ),
-          ],
+          ),
         ),
       ),
     );
