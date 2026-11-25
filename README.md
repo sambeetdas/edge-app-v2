@@ -1,6 +1,6 @@
 # Edged (Flutter & Dart — Android & iOS)
 
-A 1:1 Flutter/Dart port of **Edged** (`Edge.App` + `Prompter.AI.Edge`) from `edge.ai` — your private, offline on-device AI assistant.
+A 1:1 Flutter/Dart port of **Edged** from `edge.ai` — your private, offline on-device AI assistant.
 
 ## Features Implemented
 - **Phone + Local PIN Auth** (`com.edgedai.app`) with 25-country autocomplete picker and 30-day secure session (`flutter_secure_storage`).
