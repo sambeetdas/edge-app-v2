@@ -7,9 +7,9 @@
 ---
 
 ## 1. Project & Native Platform Setup
-- [x] `pubspec.yaml` with Riverpod, GoRouter, sqflite, Dio, flutter_secure_storage, file_picker, image_picker, archive, xml, syncfusion_flutter_pdf, device_info_plus, battery_plus, wakelock_plus, url_launcher, google_fonts, flutter_tts, speech_to_text, google_mlkit_text_recognition, flutter_local_notifications, workmanager
+- [x] `pubspec.yaml` with Riverpod, GoRouter, sqflite, Dio, flutter_secure_storage, file_picker, image_picker, archive, xml, syncfusion_flutter_pdf, device_info_plus, battery_plus, wakelock_plus, url_launcher, google_fonts, flutter_tts, speech_to_text, google_mlkit_text_recognition, flutter_local_notifications, workmanager, local_auth
 - [x] `analysis_options.yaml` and `.gitignore`
-- [x] Android `AndroidManifest.xml` (`RECORD_AUDIO`, speech/TTS `<queries>`), `build.gradle.kts` (`com.edgedai.app`, `compileSdk = 37`, `minSdk = 26`, core library desugaring), `proguard-rules.pro`, `MainActivity.kt` (`com.edgedai.app/device`)
+- [x] Android `AndroidManifest.xml` (`RECORD_AUDIO`, `USE_BIOMETRIC`, speech/TTS `<queries>`), `build.gradle.kts` (`com.edgedai.app`, `compileSdk = 37`, `minSdk = 26`, core library desugaring), `proguard-rules.pro`, `MainActivity.kt` (`FlutterFragmentActivity`, `com.edgedai.app/device`)
 - [x] iOS `Info.plist` (`com.edgedai.app`, iOS 15.0, camera/photo permissions) and `AppDelegate.swift` (`com.edgedai.app/device`)
 
 ## 2. Core Theme & Branding
@@ -31,7 +31,7 @@
 
 ## 4. Data & Persistence (`lib/data/` & `lib/providers/`)
 - [x] `lib/data/database/app_database.dart` (`edge_chat.db` v3 with 7 tables including Knowledge & Proactive entities)
-- [x] `lib/data/services/auth_service.dart` (25 countries, local 6-digit PIN, 30-day session)
+- [x] `lib/data/services/auth_service.dart` (phone biometric/PIN App Lock via `local_auth` + optional local `UserProfile`)
 - [x] `lib/data/services/chat_history_service.dart`
 - [x] `lib/data/services/custom_skills_service.dart`
 - [x] `lib/data/services/games_service.dart` (9 built-in games + custom games CRUD)
@@ -42,14 +42,14 @@
 - [x] `lib/providers/app_providers.dart` & `lib/providers/model_loader_helper.dart`
 
 ## 5. UI Features & Navigation (`lib/features/`, `lib/app.dart`, `lib/main.dart`)
-- [x] `LoadingScreen`, `PhoneSignInScreen`, `OtpVerificationScreen`
+- [x] `LoadingScreen` (phone biometric/PIN unlock gate on launch)
 - [x] `MainShellScreen` (5-tab navigation: `Chats`, `Knowledge`, `Scan`, `Skills`, `Settings`)
 - [x] `ChatListScreen`, `ChatScreen` (voice reply + mic + barge-in), `ChatBubbleWidget`
 - [x] `DocumentQaScreen` (Knowledge Base with multi-doc RAG & source citations)
 - [x] `ImageQaScreen` (Scan & Receipt OCR with ML Kit + quick-action chips)
 - [x] `ProactiveScreen` (`/proactive`: Daily Briefing + Smart Reminders)
 - [x] `SkillsScreen`, `SkillExecutionScreen`, `CreateSkillScreen`
-- [x] `SettingsScreen`, `ModelSelectionScreen` (device-aware `Best for Device` pick), `ModelDownloadScreen` (auto-resume on foreground return)
+- [x] `SettingsScreen` (App Lock toggle + optional local Profile), `ModelSelectionScreen` (device-aware `Best for Device` pick), `ModelDownloadScreen` (auto-resume on foreground return)
 - [x] `doc/play_store_assets/` (512x512 icon, 1024x500 feature graphic, 4 phone screenshots, store listing copy) & Play Store Closed Alpha `1.0.0+4` bundle
 
 ## 6. Tests & Verification

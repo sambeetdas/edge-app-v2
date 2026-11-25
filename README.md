@@ -3,7 +3,7 @@
 A 1:1 Flutter/Dart port of **Edged** from `edge.ai` — your private, offline on-device AI assistant.
 
 ## Features Implemented
-- **Phone + Local PIN Auth** (`com.edgedai.app`) with 25-country autocomplete picker and 30-day secure session (`flutter_secure_storage`).
+- **Phone Biometric / Device PIN App Lock** (`local_auth` via `USE_BIOMETRIC`, enabled by default when a screen lock is configured) + optional local **Profile** (`Name`, `Phone`, `Email` in Settings via `flutter_secure_storage`).
 - **7 On-Device Model Tiers** (Lite / Standard / Pro) with HuggingFace GGUF + `mmproj` downloads, device-aware **Best for Device** recommendation, pause/resume, auto-resume on foreground return, disk-full detection, `prompter_model_meta.json`, and 99%-size orphan self-healing.
 - **5-Tab Navigation**: `Chats`, `Knowledge`, `Scan`, `Skills`, and `Settings` (with `/proactive` accessible from the Chats AppBar bell icon).
 - **AI Chat + Offline Voice Mode** with SQLite persistence (`edge_chat.db` v3), auto-titling, last-10-message context trimming, live device context injection, on-device English Speech-to-Text (`speech_to_text`), sentence-buffered Text-to-Speech (`flutter_tts`), and real-time barge-in stop.
@@ -64,7 +64,8 @@ Release builds (`APK` and `AAB`) are signed using `android/key.properties` (poin
 - **`flutter_riverpod`** — State management & dependency injection
 - **`go_router`** — Declarative navigation & route guards
 - **`sqflite`**, **`path`**, **`path_provider`** — Local SQLite database (`edge_chat.db`) & file paths
-- **`flutter_secure_storage`** — Encrypted local PIN & session storage
+- **`local_auth`** — Phone biometric & device PIN/pattern App Lock
+- **`flutter_secure_storage`** — Encrypted local App Lock & optional Profile storage
 - **`dio`** — Resumable HTTP model downloads (`.part` Range support)
 - **`syncfusion_flutter_pdf`** — Offline PDF text extraction *(Syncfusion Community License)*
 - **`archive`**, **`xml`** — Offline `.docx` (`word/document.xml`) extraction

@@ -18,9 +18,9 @@ Before writing code, it helps to understand **why** this stack works cleanly tog
 |---|---|---|
 | **Local LLM Inference** | `llama_flutter_android` | Wraps `llama.cpp` for Android so quantized `.gguf` models (`Qwen3.5`, `Phi-4-mini`, `Gemma 3n`) run 100% on-device with token streaming. Wrapped behind `ChatEngine` with a `Future` mutex so two prompts never collide in native memory. |
 | **State & DI** | `flutter_riverpod` | Compile-safe providers (`chatEngineProvider`, `modelManagerProvider`, `knowledgeServiceProvider`) make it easy to share singletons and refresh UI state when a model finishes downloading. |
-| **Navigation** | `go_router` | Clean declarative routes (`/loading`, `/auth/phone`, `/home`, `/proactive`, `/models/download/:tierId`) with deep-link/auth redirects. |
+| **Navigation** | `go_router` | Clean declarative routes (`/loading`, `/home`, `/proactive`, `/models/download/:tierId`) with startup device-unlock gating. |
 | **Local Database** | `sqflite` (`edge_chat.db` v3) | Zero-config embedded SQLite for chats, custom skills, indexed RAG chunks, and scheduled reminders. We create tables in **both** `onUpgrade` and `onOpen` (`CREATE TABLE IF NOT EXISTS`) so schema upgrades never crash existing installs. |
-| **Secure Auth Storage** | `flutter_secure_storage` | Encrypts the user's local 6-digit PIN and 30-day session token in Android Keystore / iOS Keychain—no backend auth server required. |
+| **Device Auth & Profile** | `local_auth` + `flutter_secure_storage` | Uses the phone's native fingerprint, face unlock, or device PIN (`FlutterFragmentActivity` + `USE_BIOMETRIC`) instead of a custom login wall, and encrypts App Lock preference + optional local Profile (`Name`, `Phone`, `Email`) on-device. |
 | **Model Downloads** | `dio` + `wakelock_plus` | Supports HTTP `Range` headers so large 0.5–5.3 GB `.gguf` files resume from `.part` files if interrupted. `WakelockPlus` keeps the CPU/screen awake while downloading, and `ModelDownloadScreen` auto-resumes when the app returns to foreground (`AppLifecycleState.resumed`). |
 | **Offline Voice Mode** | `speech_to_text` (`onDevice: true`) + `flutter_tts` | **Crucial native reason**: Adding a separate `whisper.cpp` Flutter plugin alongside `llama_flutter_android` can cause duplicate `libggml.so` native symbol collisions and bloat the APK. Android's built-in offline `SpeechRecognizer` + `flutter_tts` keeps the APK small and avoids `.so` conflicts. |
 | **Offline OCR** | `google_mlkit_text_recognition` | Runs ML Kit's bundled on-device Latin OCR model (`TextRecognitionScript.latin`) in ~200 ms with zero network calls, then feeds the extracted text into `Qwen3.5` for receipt/document Q&A. (Optional Chinese/Devanagari/Japanese/Korean classes are excluded from bundling and silenced in `proguard-rules.pro`.) |
@@ -69,6 +69,7 @@ Before writing code, it helps to understand **why** this stack works cleanly tog
      google_mlkit_text_recognition: ^1.0.3
      flutter_local_notifications: ^23.0.4
      workmanager: ^0.10.10
+     local_auth: ^3.0.2
    ```
 3. Run `flutter pub get`.
 
@@ -104,7 +105,8 @@ Before writing code, it helps to understand **why** this stack works cleanly tog
      -dontwarn com.google.mlkit.vision.text.korean.**
      ```
 3. **`android/app/src/main/AndroidManifest.xml`**:
-   - Declare `INTERNET`, `WAKE_LOCK`, `POST_NOTIFICATIONS`, `RECORD_AUDIO`, `CAMERA`.
+   - Declare `INTERNET`, `WAKE_LOCK`, `POST_NOTIFICATIONS`, `RECORD_AUDIO`, `USE_BIOMETRIC`, `CAMERA`.
+   - Extend `FlutterFragmentActivity` in `MainActivity.kt` (required by `local_auth` / `BiometricPrompt`).
    - Explicitly strip `READ_MEDIA_IMAGES` and `READ_MEDIA_VIDEO` using `tools:node="remove"` so plugins cannot merge them.
    - Add `<queries>` for `android.speech.RecognitionService` and `android.intent.action.TTS_SERVICE` (required on Android 11+ for STT/TTS discovery).
 4. **`android/app/src/main/kotlin/com/edgedai/app/MainActivity.kt`**:

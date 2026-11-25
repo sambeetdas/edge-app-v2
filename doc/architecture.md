@@ -40,7 +40,7 @@ lib/
 ├── data/
 │   ├── database/app_database.dart    # sqflite edge_chat.db (version 3, 7 tables, onUpgrade + onOpen)
 │   └── services/
-│       ├── auth_service.dart         # 25-country picker, local 6-digit PIN, 30-day secure session
+│       ├── auth_service.dart         # Phone biometric/PIN App Lock (local_auth) + optional local Profile
 │       ├── chat_history_service.dart # Sessions & messages CRUD
 │       ├── custom_skills_service.dart# User-authored SQLite skills CRUD
 │       ├── document_service.dart     # .txt, .md, .docx, .pdf extraction + overlapping chunker
@@ -64,6 +64,7 @@ lib/
 | **Android Document Picking** | `ACTION_OPEN_DOCUMENT` → temp cache file (`MainActivity.kt`) | Returning `ByteArray` over `MethodChannel` | Android's Binder IPC has a hard ~1 MB transaction buffer (`TransactionTooLargeException`). Streaming picked files to `cacheDir` and returning the path handles files up to 10 MB reliably. |
 | **Resumable Model Downloads** | `Dio` HTTP `Range` (`.part`) + `WakelockPlus` + lifecycle auto-resume | `FOREGROUND_SERVICE_DATA_SYNC` | Removing `FOREGROUND_SERVICE_DATA_SYNC` avoids Google Play's special-use video review blocker while keeping downloads reliable via `WakelockPlus`, `.part` resume, and automatic restart on `AppLifecycleState.resumed`. |
 | **Gallery Image Selection** | `image_picker` (system Photo Picker) without `READ_MEDIA_IMAGES` | Declaring `READ_MEDIA_IMAGES` | Android 13+ Photo Picker grants scoped access to user-selected images without broad gallery permissions, aligning with Google Play's Photo & Video policy. |
+| **App Authentication** | `local_auth` (`biometricOnly: false`) + `FlutterFragmentActivity` | Mandatory custom Phone + PIN login screen | Uses the phone's native fingerprint, face unlock, or device PIN by default when a screen lock is set, while skipping gracefully on unlocked test devices—eliminating Play Console's *"Missing sign-in details"* blocker. |
 | **Structured UI Output** | `StructuredResponseCard` + plain-text section prompts | Raw `SelectableText` / raw markdown | Small 0.8B–4B quantized models often emit noisy markdown or `<think>` tags. Guiding prompts toward `OVERVIEW` / `SUMMARY` / `DETAILS` / `ANSWER` / `KEY POINTS` + `Formatters.stripMarkdown` produces clean, scannable cards with copy support. |
 | **State & Routing** | `flutter_riverpod` + `go_router` | `Bloc` / manual `InheritedWidget` + `Navigator 1.0` | Compile-safe singleton lifecycle management and reactive capability/model state updates across tabs. |
 
@@ -115,7 +116,7 @@ sequenceDiagram
   - `KnowledgeDocumentEntity` (`Id`, `FileName`, `FileSizeBytes`, `ChunkCount`, `CreatedAt`)
   - `KnowledgeChunkEntity` (`Id`, `DocumentId` indexed, `FileName`, `ChunkIndex`, `Content`)
   - `ProactiveReminderEntity` (`Id`, `Title`, `TriggerAt`, `IsCompleted`, `CreatedAt`)
-- **Secure Storage**: `AuthService` stores `auth_phone`, `auth_otp`, `auth_token`, and `auth_expiry` in `FlutterSecureStorage`.
+- **Secure Storage**: `AuthService` stores `auth_app_lock_enabled`, `profile_name`, `profile_phone`, and `profile_email` locally in `FlutterSecureStorage`.
 
 ---
 

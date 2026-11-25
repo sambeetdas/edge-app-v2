@@ -2,11 +2,11 @@
 
 ## 1. Functional Requirements
 
-### FR-1: Authentication & Session Management
-- **FR-1.1**: Users sign in via country code + phone number (`PhoneSignInScreen`), with autocomplete and modal search across 25 countries (`AuthService.allCountries`).
-- **FR-1.2**: Local 6-digit PIN (`100000`–`999999`) is generated/verified locally in `FlutterSecureStorage` (`auth_otp`, `auth_phone`).
-- **FR-1.3**: Successful verification stores a UUID session token (`auth_token`) and 30-day UTC expiry (`auth_expiry`).
-- **FR-1.4**: Sign-out clears all secure storage keys and unloads any loaded model.
+### FR-1: Device Authentication & Optional Profile
+- **FR-1.1**: On launch (`LoadingScreen`), prompt the phone's native authentication (`local_auth` with `biometricOnly: false` for fingerprint, face unlock, or device PIN/pattern) when `App Lock` is enabled (enabled by default if a screen lock is configured).
+- **FR-1.2**: Gracefully allow access if no screen lock is configured on the device (`isDeviceLockSupported() == false`) so unlocked test/review devices are not blocked.
+- **FR-1.3**: Users can toggle **App Lock** and trigger **Lock App** from `SettingsScreen`.
+- **FR-1.4**: Users can optionally save local-only **Name**, **Phone**, and **Email** (`UserProfile`) in `SettingsScreen`, persisted in `FlutterSecureStorage`.
 
 ### FR-2: Model Management & Compatibility
 - **FR-2.1**: Display all 7 `ModelTier.availableTiers` grouped by `Lite`, `Standard`, and `Pro`, dynamically highlighting **`Best for Device`** based on usable RAM and free storage (`ModelSelectionScreen`).
