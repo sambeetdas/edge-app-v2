@@ -13,6 +13,8 @@ class LoadingScreen extends ConsumerStatefulWidget {
 }
 
 class _LoadingScreenState extends ConsumerState<LoadingScreen> {
+  bool _needsUnlock = false;
+
   @override
   void initState() {
     super.initState();
@@ -20,15 +22,22 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
   }
 
   Future<void> _bootstrap() async {
-    final isAuth = await ref.read(authServiceProvider).isAuthenticated();
-    if (!mounted) return;
-    if (isAuth) {
-      await ref.read(downloadedModelProvider.notifier).refresh();
-      if (!mounted) return;
-      context.go('/home');
-    } else {
-      context.go('/auth/phone');
+    if (_needsUnlock && mounted) {
+      setState(() => _needsUnlock = false);
     }
+    final auth = ref.read(authServiceProvider);
+    final lockEnabled = await auth.isAppLockEnabled();
+    if (lockEnabled) {
+      final unlocked = await auth.authenticateWithDevice();
+      if (!mounted) return;
+      if (!unlocked) {
+        setState(() => _needsUnlock = true);
+        return;
+      }
+    }
+    await ref.read(downloadedModelProvider.notifier).refresh();
+    if (!mounted) return;
+    context.go('/home');
   }
 
   @override
@@ -47,11 +56,18 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
                   ),
             ),
             const SizedBox(height: 24),
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
-            ),
+            if (_needsUnlock)
+              FilledButton.icon(
+                onPressed: _bootstrap,
+                icon: const Icon(Icons.lock_open_rounded),
+                label: const Text('Unlock Edged'),
+              )
+            else
+              const SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
           ],
         ),
       ),

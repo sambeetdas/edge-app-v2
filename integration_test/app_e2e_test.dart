@@ -11,12 +11,32 @@ import 'package:edged/engine/services/model_manager.dart';
 import 'package:edged/providers/app_providers.dart';
 
 class _InMemoryAuthService extends AuthService {
-  bool _authed = false;
+  bool _authed = true;
+  bool _appLock = false;
+  UserProfile _profile = const UserProfile();
   String? _phone;
   String? _pin;
 
   @override
   Future<bool> isAuthenticated() async => _authed;
+
+  @override
+  Future<bool> isAppLockEnabled() async => _appLock;
+
+  @override
+  Future<void> setAppLockEnabled(bool enabled) async => _appLock = enabled;
+
+  @override
+  Future<bool> isDeviceLockSupported() async => true;
+
+  @override
+  Future<bool> authenticateWithDevice({String reason = ''}) async => true;
+
+  @override
+  Future<UserProfile> getProfile() async => _profile;
+
+  @override
+  Future<void> saveProfile(UserProfile profile) async => _profile = profile;
 
   @override
   Future<String?> getPhoneNumber() async => _phone;
@@ -107,32 +127,8 @@ void main() {
       ),
     );
 
-    // 1. Splash -> Phone Sign-In
+    // 1. Splash -> Home (Settings, no model downloaded yet)
     await tester.pumpAndSettle();
-    expect(find.text('Edged'), findsOneWidget);
-    expect(find.text('Continue'), findsOneWidget);
-
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Phone number'),
-      '5551234567',
-    );
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-
-    // 2. PIN Setup
-    expect(find.text('Create your PIN'), findsOneWidget);
-    await tester.enterText(
-      find.widgetWithText(TextField, 'New PIN'),
-      '123456',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Confirm PIN'),
-      '123456',
-    );
-    await tester.tap(find.text('Save PIN & Continue'));
-    await tester.pumpAndSettle();
-
-    // 3. Settings (no model downloaded yet -> only Settings visible)
     expect(find.text('No AI model downloaded'), findsOneWidget);
     await tester.tap(find.text('Choose & Download Model'));
     await tester.pumpAndSettle();
@@ -183,15 +179,11 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // 8. Settings & Sign Out E2E
+    // 8. Settings & Profile E2E
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Edged v1.0.0'), findsOneWidget);
     expect(find.text('Built by Sambeet Das'), findsOneWidget);
-
-    await tester.scrollUntilVisible(find.text('Sign Out'), 200);
-    await tester.tap(find.text('Sign Out'));
-    await tester.pumpAndSettle();
-    expect(find.text('Send Code'), findsOneWidget);
+    expect(find.text('App Lock'), findsOneWidget);
   });
 }

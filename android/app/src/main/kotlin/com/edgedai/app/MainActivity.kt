@@ -10,12 +10,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.StatFs
 import android.provider.OpenableColumns
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private val deviceChannel = "com.edgedai.app/device"
     private val pickDocRequestCode = 4103
     private var pendingDocResult: MethodChannel.Result? = null

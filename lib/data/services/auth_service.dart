@@ -1,5 +1,18 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:uuid/uuid.dart';
+
+class UserProfile {
+  final String name;
+  final String phone;
+  final String email;
+
+  const UserProfile({
+    this.name = '',
+    this.phone = '',
+    this.email = '',
+  });
+}
 
 class CountryCode {
   final String code;
@@ -20,11 +33,19 @@ class AuthService {
   static const _keyPin = 'auth_pin';
   static const _keyToken = 'auth_token';
   static const _keyExpiry = 'auth_expiry';
+  static const _keyAppLock = 'auth_app_lock_enabled';
+  static const _keyProfileName = 'profile_name';
+  static const _keyProfilePhone = 'profile_phone';
+  static const _keyProfileEmail = 'profile_email';
 
   final FlutterSecureStorage _storage;
+  final LocalAuthentication _localAuth;
 
-  AuthService({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+  AuthService({
+    FlutterSecureStorage? storage,
+    LocalAuthentication? localAuth,
+  })  : _storage = storage ?? const FlutterSecureStorage(),
+        _localAuth = localAuth ?? LocalAuthentication();
 
   static const List<CountryCode> allCountries = [
     CountryCode(code: '+1', name: 'United States', flag: '🇺🇸'),
@@ -113,5 +134,54 @@ class AuthService {
   Future<void> signOut() async {
     await _storage.delete(key: _keyToken);
     await _storage.delete(key: _keyExpiry);
+  }
+
+  Future<bool> isAppLockEnabled() async {
+    final val = await _storage.read(key: _keyAppLock);
+    return val != 'false';
+  }
+
+  Future<void> setAppLockEnabled(bool enabled) async {
+    await _storage.write(
+      key: _keyAppLock,
+      value: enabled ? 'true' : 'false',
+    );
+  }
+
+  Future<bool> isDeviceLockSupported() async {
+    try {
+      return await _localAuth.isDeviceSupported();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> authenticateWithDevice({
+    String reason = 'Unlock Edged using your phone credentials',
+  }) async {
+    try {
+      final supported = await isDeviceLockSupported();
+      if (!supported) return true;
+      return await _localAuth.authenticate(
+        localizedReason: reason,
+        biometricOnly: false,
+        persistAcrossBackgrounding: true,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<UserProfile> getProfile() async {
+    final name = await _storage.read(key: _keyProfileName) ?? '';
+    final phone = await _storage.read(key: _keyProfilePhone) ?? '';
+    final email = await _storage.read(key: _keyProfileEmail) ?? '';
+    return UserProfile(name: name, phone: phone, email: email);
+  }
+
+  Future<void> saveProfile(UserProfile profile) async {
+    await _storage.write(key: _keyProfileName, value: profile.name.trim());
+    await _storage.write(key: _keyProfilePhone, value: profile.phone.trim());
+    await _storage.write(key: _keyProfileEmail, value: profile.email.trim());
   }
 }

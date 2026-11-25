@@ -5,10 +5,94 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/edged_logo.dart';
+import '../../data/services/auth_service.dart';
 import '../../providers/app_providers.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  bool _appLockEnabled = false;
+  bool _deviceLockSupported = false;
+  bool _savingProfile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _emailCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSettings() async {
+    final auth = ref.read(authServiceProvider);
+    final profile = await auth.getProfile();
+    final lockEnabled = await auth.isAppLockEnabled();
+    final supported = await auth.isDeviceLockSupported();
+    if (!mounted) return;
+    setState(() {
+      _nameCtrl.text = profile.name;
+      _phoneCtrl.text = profile.phone;
+      _emailCtrl.text = profile.email;
+      _appLockEnabled = lockEnabled;
+      _deviceLockSupported = supported;
+    });
+  }
+
+  Future<void> _toggleAppLock(bool enable) async {
+    final auth = ref.read(authServiceProvider);
+    if (enable) {
+      final supported = await auth.isDeviceLockSupported();
+      if (!supported) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Set a screen lock (PIN, pattern, or biometrics) in phone Settings first.',
+            ),
+          ),
+        );
+        return;
+      }
+      final verified = await auth.authenticateWithDevice(
+        reason: 'Confirm phone unlock to enable App Lock',
+      );
+      if (!verified) return;
+    }
+    await auth.setAppLockEnabled(enable);
+    if (!mounted) return;
+    setState(() => _appLockEnabled = enable);
+  }
+
+  Future<void> _saveProfile() async {
+    setState(() => _savingProfile = true);
+    await ref.read(authServiceProvider).saveProfile(
+          UserProfile(
+            name: _nameCtrl.text,
+            phone: _phoneCtrl.text,
+            email: _emailCtrl.text,
+          ),
+        );
+    if (!mounted) return;
+    setState(() => _savingProfile = false);
+    FocusScope.of(context).unfocus();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profile saved locally on device')),
+    );
+  }
 
   Future<void> _confirmDeleteModel(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
@@ -35,15 +119,12 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-    await ref.read(chatEngineProvider).unloadModel();
-    await ref.read(authServiceProvider).signOut();
-    if (!context.mounted) return;
-    context.go('/auth/phone');
+  void _lockApp(BuildContext context) {
+    context.go('/loading');
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final modelAsync = ref.watch(downloadedModelProvider);
     final tier = ref.watch(activeModelTierProvider);
     final theme = Theme.of(context);
@@ -80,7 +161,7 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Download an on-device model to unlock Chats, Agent Skills, and Docs Q&A.',
+                          'Download an on-device model to unlock Chats, Knowledge, Scan, and Skills.',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -126,9 +207,9 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Capabilities: Chat · Skills'
-                        '${tier.supportsVision ? ' · Image Q&A' : ''}'
-                        '${tier.supportsDocumentQa ? ' · Docs Q&A' : ''}',
+                        'Capabilities: Chats · Scan OCR · Skills'
+                        '${tier.supportsDocumentQa ? ' · Knowledge RAG' : ''}'
+                        '${tier.supportsVision ? ' · Pixel Vision' : ''}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -217,6 +298,78 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text(
+            'Security',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: SwitchListTile(
+              title: const Text('App Lock'),
+              subtitle: Text(
+                _deviceLockSupported
+                    ? 'Use your phone\'s fingerprint, face unlock, or device PIN'
+                    : 'No phone screen lock detected in device settings',
+              ),
+              value: _appLockEnabled,
+              onChanged: _toggleAppLock,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Profile (Optional · Local Only)',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _nameCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Name (optional)',
+                      prefixIcon: Icon(Icons.person_outline_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone (optional)',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email (optional)',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  FilledButton.tonalIcon(
+                    onPressed: _savingProfile ? null : _saveProfile,
+                    icon: const Icon(Icons.save_outlined),
+                    label: Text(_savingProfile ? 'Saving…' : 'Save Profile'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
             'About & Built By',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
@@ -288,16 +441,17 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
-              minimumSize: const Size(double.infinity, 48),
+          if (_appLockEnabled) ...[
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+              ),
+              onPressed: () => _lockApp(context),
+              icon: const Icon(Icons.lock_outline_rounded),
+              label: const Text('Lock App'),
             ),
-            onPressed: () => _signOut(context, ref),
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('Sign Out'),
-          ),
+          ],
         ],
       ),
     );
