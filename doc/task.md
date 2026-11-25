@@ -49,7 +49,8 @@
 - [x] `ImageQaScreen` (Scan & Receipt OCR with ML Kit + quick-action chips)
 - [x] `ProactiveScreen` (`/proactive`: Daily Briefing + Smart Reminders)
 - [x] `SkillsScreen`, `SkillExecutionScreen`, `CreateSkillScreen`
-- [x] `SettingsScreen`, `ModelSelectionScreen`, `ModelDownloadScreen`
+- [x] `SettingsScreen`, `ModelSelectionScreen` (device-aware `Best for Device` pick), `ModelDownloadScreen` (auto-resume on foreground return)
+- [x] `doc/play_store_assets/` (512x512 icon, 1024x500 feature graphic, 4 phone screenshots, store listing copy) & Play Store Closed Alpha `1.0.0+4` bundle
 
 ## 6. Tests & Verification
 - [x] `test/edged_core_test.dart` (unit tests for `ModelTier`, `PromptFormat`, built-in skills/games/countries)

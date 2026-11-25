@@ -36,7 +36,7 @@ lib/
   - `ProactiveReminderEntity` (`Id`, `Title`, `TriggerAt`, `IsCompleted`, `CreatedAt`)
 - **Secure Storage**: `AuthService` stores `auth_phone`, `auth_otp`, `auth_token`, `auth_expiry` in `FlutterSecureStorage`.
 - **Native Device Channel (`com.edgedai.app/device`)**:
-  - Android ([MainActivity.kt](file:///d:/Sambeet/Working%20Folder/edge-app-v2/android/app/src/main/kotlin/com/edgedai/app/MainActivity.kt)): `ActivityManager.MemoryInfo.totalMem`, `StatFs.availableBytes`, `ModelDownloadService` foreground notifications, and `ACTION_OPEN_DOCUMENT` streaming to cache file.
+  - Android ([MainActivity.kt](file:///d:/Sambeet/Working%20Folder/edge-app-v2/android/app/src/main/kotlin/com/edgedai/app/MainActivity.kt)): `ActivityManager.MemoryInfo.totalMem`, `StatFs.availableBytes`, notification permission requests, and `ACTION_OPEN_DOCUMENT` streaming to cache file.
   - iOS ([AppDelegate.swift](file:///d:/Sambeet/Working%20Folder/edge-app-v2/ios/Runner/AppDelegate.swift)): `ProcessInfo.processInfo.physicalMemory` and `volumeAvailableCapacityForImportantUsage`.
 
 ## 4. Navigation & State Flow
