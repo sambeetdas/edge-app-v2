@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -22,6 +23,7 @@ void edgedWorkmanagerDispatcher() {
     final title = (inputData?['title'] as String?) ?? 'Edged Daily Briefing';
     final body = (inputData?['body'] as String?) ??
         'Open Edged to review your offline chats, knowledge docs, and reminders.';
+    final payload = inputData?['payload'] as String?;
 
     await plugin.show(
       id: task.hashCode & 0x7fffffff,
@@ -31,11 +33,12 @@ void edgedWorkmanagerDispatcher() {
         android: AndroidNotificationDetails(
           'edged_proactive',
           'Edged Proactive Assistant',
-          channelDescription: 'Offline reminders and daily summaries',
-          importance: Importance.defaultImportance,
-          priority: Priority.defaultPriority,
+          channelDescription: 'Offline reminders, scheduled agents, and briefings',
+          importance: Importance.high,
+          priority: Priority.high,
         ),
       ),
+      payload: payload,
     );
     return true;
   });
@@ -89,6 +92,38 @@ class ProactiveService {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     await _notifications.initialize(
       settings: const InitializationSettings(android: androidInit),
+      onDidReceiveNotificationResponse: (response) async {
+        final payload = response.payload;
+        if (payload != null && payload.isNotEmpty) {
+          final uri = Uri.tryParse(payload);
+          if (uri != null) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        }
+      },
+    );
+  }
+
+  /// Schedules a local notification that opens [actionUrl] (e.g. mailto: or wa.me) on tap.
+  Future<void> scheduleActionNotification({
+    required String title,
+    required String body,
+    required Duration delay,
+    required String actionUrl,
+  }) async {
+    if (kIsWeb || !Platform.isAndroid) return;
+    final id = _uuid.v4();
+    await initializeBackground();
+    await ensureNotificationsReady();
+    await Workmanager().registerOneOffTask(
+      '$_reminderTaskPrefix$id',
+      '$_reminderTaskPrefix$id',
+      initialDelay: delay,
+      inputData: {
+        'title': title,
+        'body': body,
+        'payload': actionUrl,
+      },
     );
   }
 

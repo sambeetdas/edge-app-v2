@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:edged/data/services/agent_service.dart';
 import 'package:edged/data/services/auth_service.dart';
 import 'package:edged/engine/models/chat_models.dart';
 import 'package:edged/engine/models/model_tier.dart';
@@ -32,5 +33,17 @@ void main() {
   test('Built-in skills and countries match specification counts', () {
     expect(SkillsEngine.builtInSkills.length, 6);
     expect(AuthService.allCountries.length, 25);
+  });
+
+  test('AgentService folds built-in skills and automation agents together', () {
+    expect(AgentService.builtInAgents.length, 12);
+    expect(AgentService.getBuiltInById('scheduled_email')?.hasTool(AgentTool.email), isTrue);
+    expect(AgentService.getBuiltInById('scheduled_whatsapp')?.hasTool(AgentTool.whatsapp), isTrue);
+    expect(AgentService.getBuiltInById('rag_researcher')?.hasTool(AgentTool.rag), isTrue);
+    expect(AgentService.getBuiltInById('ocr_extractor')?.hasTool(AgentTool.ocr), isTrue);
+    expect(AgentService.getBuiltInById('summarizer'), isNotNull);
+
+    final encoded = AgentTool.encodeList([AgentTool.rag, AgentTool.email]);
+    expect(AgentTool.parseList(encoded), [AgentTool.rag, AgentTool.email]);
   });
 }

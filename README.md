@@ -5,12 +5,12 @@ A 1:1 Flutter/Dart port of **Edged** from `edge.ai` — your private, offline on
 ## Features Implemented
 - **Phone Biometric / Device PIN App Lock** (`local_auth` via `USE_BIOMETRIC`, enabled by default when a screen lock is configured) + optional local **Profile** (`Name`, `Phone`, `Email` in Settings via `flutter_secure_storage`).
 - **7 On-Device Model Tiers** (Lite / Standard / Pro) with HuggingFace GGUF + `mmproj` downloads, device-aware **Best for Device** recommendation, pause/resume, auto-resume on foreground return, disk-full detection, `prompter_model_meta.json`, and 99%-size orphan self-healing.
-- **5-Tab Navigation**: `Chats`, `Knowledge`, `Scan`, `Skills`, and `Settings` (with `/proactive` accessible from the Chats AppBar bell icon).
-- **AI Chat + Offline Voice Mode** with SQLite persistence (`edge_chat.db` v3), auto-titling, last-10-message context trimming, live device context injection, on-device English Speech-to-Text (`speech_to_text`), sentence-buffered Text-to-Speech (`flutter_tts`), and real-time barge-in stop.
+- **5-Tab Navigation**: `Chats`, `Knowledge`, `Scan`, `Agents`, and `Settings` (with `/proactive` accessible from the Chats AppBar bell icon).
+- **AI Chat + Offline Voice Mode** with SQLite persistence (`edge_chat.db` v4), auto-titling, last-10-message context trimming, live device context injection, on-device English Speech-to-Text (`speech_to_text`), sentence-buffered Text-to-Speech (`flutter_tts`), and real-time barge-in stop.
 - **Offline Knowledge Base (RAG + Citations)**: Multi-document `.txt`, `.md`, `.docx`, and `.pdf` indexing (up to 10 MB) with chunking, SQLite persistence (`KnowledgeDocumentEntity`, `KnowledgeChunkEntity`), hybrid keyword/BM25 retrieval, structured answers, and inline `[filename §chunk]` source citations.
 - **Offline Scan & Receipt OCR**: Camera & gallery image capture powered by on-device ML Kit Latin OCR (`google_mlkit_text_recognition`) feeding into `Qwen3.5` / `ChatEngine` for receipt totals, itemized lists, and text summaries.
 - **Proactive Local Assistant (`/proactive`)**: On-device Daily Briefing generator (`OVERVIEW`, `HIGHLIGHTS`, `NEXT ACTIONS`), scheduled offline reminders (`ProactiveReminderEntity`), and 24-hour background briefings (`workmanager` + `flutter_local_notifications`).
-- **6 Built-in Skills + Custom Skill Builder** (Summarizer, Translator, Code Explainer, Writing Assistant, Grammar Fixer, Brainstorm Helper).
+- **Unified Agents + Agent-to-Agent (A2A) Chaining**: 12 predefined Agents (**Scheduled Email**, **Scheduled WhatsApp**, **Knowledge RAG**, **OCR & Receipt**, **Action & Reminder**, **Daily Briefing**, plus all 6 classic Skills: Summarizer, Translator, Code Explainer, Writing Assistant, Grammar Fixer, Brainstorm Helper), custom Agent builder (`CustomAgentEntity`), and multi-step A2A handoffs.
 - **Android & iOS Native Channels** (`com.edgedai.app/device` for RAM/storage probing, notification permission requests, and `ACTION_OPEN_DOCUMENT` file-to-cache streaming).
 
 ## Getting Started

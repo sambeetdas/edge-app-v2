@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../data/database/app_database.dart';
+import '../data/services/agent_service.dart';
 import '../data/services/auth_service.dart';
 import '../data/services/chat_history_service.dart';
 import '../data/services/custom_skills_service.dart';
@@ -12,6 +13,7 @@ import '../data/services/knowledge_service.dart';
 import '../data/services/proactive_service.dart';
 import '../engine/models/chat_models.dart';
 import '../engine/models/model_tier.dart';
+import '../engine/services/agent_orchestrator.dart';
 import '../engine/services/chat_engine.dart';
 import '../engine/services/model_manager.dart';
 import '../engine/services/skills_engine.dart';
@@ -58,6 +60,19 @@ final deviceServiceProvider = Provider<DeviceService>(
 
 final proactiveServiceProvider = Provider<ProactiveService>(
   (ref) => ProactiveService(ref.watch(appDatabaseProvider)),
+);
+final agentServiceProvider = Provider<AgentService>(
+  (ref) => AgentService(ref.watch(appDatabaseProvider)),
+);
+final agentOrchestratorProvider = Provider<AgentOrchestrator>(
+  (ref) => AgentOrchestrator(
+    chatEngine: ref.watch(chatEngineProvider),
+    agentService: ref.watch(agentServiceProvider),
+    knowledgeService: ref.watch(knowledgeServiceProvider),
+    visionEngine: ref.watch(visionEngineProvider),
+    proactiveService: ref.watch(proactiveServiceProvider),
+    chatHistoryService: ref.watch(chatHistoryServiceProvider),
+  ),
 );
 
 class DownloadedModelNotifier extends AsyncNotifier<DownloadedModelInfo?> {

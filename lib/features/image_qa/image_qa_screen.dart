@@ -119,7 +119,7 @@ class _ImageQaScreenState extends ConsumerState<ImageQaScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan & Receipt OCR')),
+      appBar: AppBar(title: const Text('Scan & Image OCR')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -205,9 +205,9 @@ class _ImageQaScreenState extends ConsumerState<ImageQaScreen> {
               runSpacing: 6,
               children: [
                 for (final prompt in const [
-                  'Extract total, date, and merchant',
-                  'List all items and prices',
                   'Summarize this text',
+                  'Extract key points & dates',
+                  'Extract all text cleanly',
                 ])
                   ActionChip(
                     label: Text(prompt),

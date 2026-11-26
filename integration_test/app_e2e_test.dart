@@ -142,7 +142,7 @@ void main() {
     expect(find.text('Chats'), findsWidgets);
     expect(find.text('Knowledge'), findsOneWidget);
     expect(find.text('Scan'), findsOneWidget);
-    expect(find.text('Skills'), findsOneWidget);
+    expect(find.text('Agents'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
 
     // 6. AI Chat E2E
@@ -161,20 +161,20 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // 7. Agent Skills E2E
-    await tester.tap(find.text('Skills'));
+    // 7. Agents E2E
+    await tester.tap(find.text('Agents'));
     await tester.pumpAndSettle();
     expect(find.text('Summarizer'), findsOneWidget);
     await tester.tap(find.text('Summarizer'));
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byType(TextField),
+      find.byType(TextField).first,
       'Edged is an offline on-device AI assistant built for Android and iOS.',
     );
-    await tester.tap(find.text('Run Skill'));
+    await tester.tap(find.text('Run Agent'));
     await tester.pumpAndSettle(const Duration(seconds: 2));
-    expect(find.text('Result'), findsOneWidget);
+    expect(find.textContaining('Summarizer'), findsWidgets);
 
     await tester.pageBack();
     await tester.pumpAndSettle();

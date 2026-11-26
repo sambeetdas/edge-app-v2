@@ -5,11 +5,38 @@ import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:edged/core/utils/formatters.dart';
+import 'package:edged/data/database/app_database.dart';
+import 'package:edged/data/services/agent_service.dart';
+import 'package:edged/data/services/chat_history_service.dart';
 import 'package:edged/data/services/device_service.dart';
 import 'package:edged/data/services/document_service.dart';
+import 'package:edged/data/services/knowledge_service.dart';
+import 'package:edged/data/services/proactive_service.dart';
 import 'package:edged/engine/models/chat_models.dart';
 import 'package:edged/engine/models/prompt_format.dart';
+import 'package:edged/engine/services/agent_orchestrator.dart';
 import 'package:edged/engine/services/chat_engine.dart';
+import 'package:edged/engine/services/vision_engine.dart';
+
+class _InMemoryAgentService extends AgentService {
+  _InMemoryAgentService() : super(AppDatabase());
+  final List<(String from, String to, String content)> logged = [];
+
+  @override
+  Future<String> createRun(String title) async => 'run-1';
+
+  @override
+  Future<void> logAgentMessage({
+    required String runId,
+    required String fromAgent,
+    required String toAgent,
+    required String content,
+    String? actionType,
+    String? actionPayload,
+  }) async {
+    logged.add((fromAgent, toAgent, content));
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -194,6 +221,45 @@ void main() {
           '### Summary\n* **First** point\n- *Second* `point`\n\n<think>partial';
       final cleaned = Formatters.stripMarkdown(raw);
       expect(cleaned, equals('Summary\n• First point\n• Second point'));
+    });
+
+    test('AgentOrchestrator runs 2-hop A2A chain and builds mailto action', () async {
+      final chatEngine = ChatEngine();
+      await chatEngine.loadModel(
+        modelPath: '/tmp/mock.gguf',
+        promptFormat: PromptFormat.chatML,
+      );
+      final agentService = _InMemoryAgentService();
+      final db = AppDatabase();
+      final docService = DocumentService();
+      final orchestrator = AgentOrchestrator(
+        chatEngine: chatEngine,
+        agentService: agentService,
+        knowledgeService: KnowledgeService(db, docService),
+        visionEngine: VisionEngine(chatEngine),
+        proactiveService: ProactiveService(db),
+        chatHistoryService: ChatHistoryService(db),
+      );
+
+      final primary = AgentService.getBuiltInById('summarizer')!;
+      final handoff = AgentService.getBuiltInById('scheduled_email')!;
+
+      final finalEvents = await orchestrator
+          .runAgentChain(
+            primaryAgent: primary,
+            handoffAgent: handoff,
+            userInput: 'Summarize Q4 launch checklist',
+            recipientTarget: 'team@example.com',
+          )
+          .where((e) => !e.isStreaming)
+          .toList();
+
+      expect(finalEvents.length, 2);
+      expect(finalEvents[0].agentId, 'summarizer');
+      expect(finalEvents[0].targetLabel, contains('Scheduled Email'));
+      expect(finalEvents[1].agentId, 'scheduled_email');
+      expect(finalEvents[1].actionUrl, startsWith('mailto:team@example.com'));
+      expect(agentService.logged.length, 2);
     });
   });
 }

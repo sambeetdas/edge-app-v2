@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/app_providers.dart';
+import '../agents/agents_screen.dart';
 import '../chat/chat_list_screen.dart';
 import '../document_qa/document_qa_screen.dart';
 import '../image_qa/image_qa_screen.dart';
 import '../settings/settings_screen.dart';
-import '../skills/skills_screen.dart';
 
 class _ShellTab {
   final String label;
@@ -60,10 +60,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           page: ImageQaScreen(),
         ),
         const _ShellTab(
-          label: 'Skills',
-          icon: Icons.auto_awesome_outlined,
-          selectedIcon: Icons.auto_awesome_rounded,
-          page: SkillsScreen(),
+          label: 'Agents',
+          icon: Icons.smart_toy_outlined,
+          selectedIcon: Icons.smart_toy_rounded,
+          page: AgentsScreen(),
         ),
       ],
       const _ShellTab(

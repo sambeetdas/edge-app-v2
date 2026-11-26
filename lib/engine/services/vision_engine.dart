@@ -40,9 +40,10 @@ class VisionEngine {
 
     final request = ChatRequest(
       systemPrompt:
-          'You are Edged Scan, an offline receipt and image text assistant. '
-          'Answer strictly from the OCR text using ONLY these plain-text sections '
-          '(no markdown #, **, or code blocks):\n\n'
+          'You are Edged Scan, an offline image text assistant. '
+          'Answer the user\'s question directly from the extracted OCR text '
+          '(whether it is a note, document, screenshot, sign, or receipt) using ONLY these plain-text sections '
+          '(no markdown #, **, or code blocks). Do not mention missing receipt fields like merchant or total unless asked:\n\n'
           'SUMMARY:\n'
           '<1-2 concise sentences answering the question>\n\n'
           'DETAILS:\n'

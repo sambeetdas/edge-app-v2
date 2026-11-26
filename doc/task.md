@@ -28,12 +28,13 @@
 - [x] `lib/engine/services/skills_engine.dart` (6 built-in skills)
 - [x] `lib/engine/services/vision_engine.dart` (offline ML Kit Latin OCR + `ChatEngine` Q&A)
 - [x] `lib/engine/services/voice_service.dart` (on-device English STT + `flutter_tts` with barge-in)
+- [x] `lib/engine/services/agent_orchestrator.dart` (sequential A2A handoffs, RAG/OCR/Email/WhatsApp/Reminder tool execution)
 
 ## 4. Data & Persistence (`lib/data/` & `lib/providers/`)
-- [x] `lib/data/database/app_database.dart` (`edge_chat.db` v3 with 7 tables including Knowledge & Proactive entities)
+- [x] `lib/data/database/app_database.dart` (`edge_chat.db` v4 with 10 tables including Knowledge, Proactive, and Agent entities)
 - [x] `lib/data/services/auth_service.dart` (phone biometric/PIN App Lock via `local_auth` + optional local `UserProfile`)
 - [x] `lib/data/services/chat_history_service.dart`
-- [x] `lib/data/services/custom_skills_service.dart`
+- [x] `lib/data/services/agent_service.dart` (12 predefined Agents + custom SQLite Agents + A2A message logs)
 - [x] `lib/data/services/games_service.dart` (9 built-in games + custom games CRUD)
 - [x] `lib/data/services/document_service.dart` (`.txt`, `.md`, `.docx`, `.pdf` extraction, chunking, token truncation)
 - [x] `lib/data/services/knowledge_service.dart` (multi-doc SQLite RAG + hybrid keyword/BM25 retrieval + citations)
@@ -43,12 +44,12 @@
 
 ## 5. UI Features & Navigation (`lib/features/`, `lib/app.dart`, `lib/main.dart`)
 - [x] `LoadingScreen` (phone biometric/PIN unlock gate on launch)
-- [x] `MainShellScreen` (5-tab navigation: `Chats`, `Knowledge`, `Scan`, `Skills`, `Settings`)
+- [x] `MainShellScreen` (5-tab navigation: `Chats`, `Knowledge`, `Scan`, `Agents`, `Settings`)
 - [x] `ChatListScreen`, `ChatScreen` (voice reply + mic + barge-in), `ChatBubbleWidget`
 - [x] `DocumentQaScreen` (Knowledge Base with multi-doc RAG & source citations)
 - [x] `ImageQaScreen` (Scan & Receipt OCR with ML Kit + quick-action chips)
 - [x] `ProactiveScreen` (`/proactive`: Daily Briefing + Smart Reminders)
-- [x] `SkillsScreen`, `SkillExecutionScreen`, `CreateSkillScreen`
+- [x] `AgentsScreen`, `AgentRunScreen` (live A2A step cards + Email/WhatsApp actions), `CreateAgentScreen`
 - [x] `SettingsScreen` (App Lock toggle + optional local Profile), `ModelSelectionScreen` (device-aware `Best for Device` pick), `ModelDownloadScreen` (auto-resume on foreground return)
 - [x] `dist/play_store_assets/` (512x512 icon, 1024x500 feature graphic, phone screenshots, store listing copy; untracked) & Play Store Closed Alpha `1.0.0+4` bundle
 

@@ -127,11 +127,12 @@ Before writing code, it helps to understand **why** this stack works cleanly tog
 ---
 
 ### Step 4 — Local Database (`lib/data/database/app_database.dart`)
-Create a singleton `AppDatabase` managing `edge_chat.db` at `version: 3` with 7 tables:
+Create a singleton `AppDatabase` managing `edge_chat.db` at `version: 4` with 10 tables:
 - `ChatSessionEntity` & `ChatMessageEntity` (indexed on `SessionId`)
 - `CustomSkillEntity` & `CustomGameEntity`
 - `KnowledgeDocumentEntity` & `KnowledgeChunkEntity` (indexed on `DocumentId`)
 - `ProactiveReminderEntity`
+- `CustomAgentEntity`, `AgentRunEntity`, & `AgentMessageEntity` (indexed on `RunId`)
 
 **Important pattern**: Call `_createKnowledgeTables(db)` and `_createProactiveTables(db)` (using `CREATE TABLE IF NOT EXISTS`) in **both** `onUpgrade` and `onOpen` so older user databases never hit missing-table errors.
 
@@ -182,7 +183,7 @@ Create a singleton `AppDatabase` managing `edge_chat.db` at `version: 3` with 7 
 
 ### Step 10 — Navigation Shell, Providers & Device-Aware Model Selection
 1. Wire all singletons (`AppDatabase`, `ModelManager`, `ChatEngine`, `VoiceService`, `VisionEngine`, `KnowledgeService`, `ProactiveService`) in `lib/providers/app_providers.dart`.
-2. Build `MainShellScreen` with 5 tabs: `Chats`, `Knowledge`, `Scan`, `Skills`, `Settings` (showing an onboarding banner on `Knowledge` / `Scan` / `Skills` if no model is downloaded yet).
+2. Build `MainShellScreen` with 5 tabs: `Chats`, `Knowledge`, `Scan`, `Agents`, `Settings` (folding classic Skills, Predefined Automation/RAG/OCR Agents, Custom Agents, and A2A handoff chains into `AgentsScreen` + `AgentOrchestrator`).
 3. In `ModelSelectionScreen`, read `DeviceService.getCompatibilityReport()` (`effectiveRamGb = totalRamGb - 1.5`) and highlight the single **`⭐ Best for Device`** tier (`0.8B` < 3 GB usable, `2B` 3–5 GB usable, `4B` ≥ 5 GB usable).
 4. In `ModelDownloadScreen`, place **Resume / Retry** above a sanitized error message inside `SingleChildScrollView`, and use `WidgetsBindingObserver` to auto-resume if Android drops the socket while backgrounded.
 

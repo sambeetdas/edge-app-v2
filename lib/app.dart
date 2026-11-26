@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
 import 'providers/app_providers.dart';
+import 'features/agents/agent_run_screen.dart';
+import 'features/agents/create_agent_screen.dart';
 import 'features/auth/phone_sign_in_screen.dart';
 import 'features/auth/pin_verification_screen.dart';
 import 'features/chat/chat_screen.dart';
@@ -45,6 +47,16 @@ GoRouter createAppRouter({String initialLocation = '/loading'}) => GoRouter(
       builder: (_, state) => ChatScreen(
         sessionId: state.pathParameters['sessionId']!,
       ),
+    ),
+    GoRoute(
+      path: '/agents/run/:agentId',
+      builder: (_, state) => AgentRunScreen(
+        agentId: state.pathParameters['agentId']!,
+      ),
+    ),
+    GoRoute(
+      path: '/agents/create',
+      builder: (_, __) => const CreateAgentScreen(),
     ),
     GoRoute(
       path: '/skills/run/:skillId',

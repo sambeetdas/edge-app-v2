@@ -15,12 +15,12 @@
 ## 3. Scope & Feature Pillars
 1. **Device-Native Authentication & Optional Profile**: Uses the phone's built-in biometric or device PIN (`local_auth`, enabled by default when a screen lock is configured) with no custom login wall, plus optional local-only Name, Phone, and Email fields in Settings (`flutter_secure_storage`).
 2. **Device-Aware Model Tier Management**: 7 curated GGUF model tiers (Lite, Standard, Pro) with **Best for Device** RAM/storage recommendation, resumable `.part` downloads (`Dio`), foreground auto-resume, `WakelockPlus` protection, and orphaned-file metadata self-healing.
-3. **5-Tab Navigation + Proactive Route**: Bottom navigation displays `Chats`, `Knowledge`, `Scan`, `Skills`, and `Settings`, with `/proactive` (`ProactiveScreen`) accessible from the Chats AppBar.
+3. **5-Tab Navigation + Proactive Route**: Bottom navigation displays `Chats`, `Knowledge`, `Scan`, `Agents`, and `Settings`, with `/proactive` (`ProactiveScreen`) accessible from the Chats AppBar.
 4. **Offline AI Chat + Voice Mode**: Multi-session SQLite-persisted conversations with `llama_flutter_android` token streaming, 10s "Still thinking…" indicator, 120s timeout, auto-titling, live device context awareness, on-device English Speech-to-Text (`speech_to_text`), sentence-buffered Text-to-Speech (`flutter_tts`), and real-time barge-in stop.
 5. **Offline Knowledge Base (RAG + Citations)**: Multi-document `.txt`, `.md`, `.docx`, and `.pdf` indexing (≤ 10 MB) stored in SQLite (`KnowledgeDocumentEntity`, `KnowledgeChunkEntity`) with chunking, hybrid keyword/BM25 retrieval, structured `StructuredResponseCard` answers, and inline `[filename §chunk]` source citations.
 6. **Offline Scan & Receipt OCR**: Camera capture and Android Photo Picker (`image_picker`) using on-device ML Kit Latin OCR (`google_mlkit_text_recognition`) feeding into `ChatEngine` with quick-action chips and structured `SUMMARY` / `DETAILS` output.
 7. **Proactive Local Assistant (`/proactive`)**: On-device Daily Briefing (`OVERVIEW`, `HIGHLIGHTS`, `NEXT ACTIONS`), local scheduled reminders (`ProactiveReminderEntity`), and 24-hour background briefings (`workmanager` + `flutter_local_notifications`).
-8. **Agent Skills**: 6 built-in single-shot productivity skills + user-created custom skills persisted in SQLite.
+8. **Unified Agents & A2A Chaining**: 12 predefined Agents (Scheduled Email, Scheduled WhatsApp, Knowledge RAG, OCR & Receipt, Action & Reminder, Daily Briefing, plus all 6 classic productivity skills), custom SQLite Agents (`CustomAgentEntity`), and sequential Agent-to-Agent (A2A) handoffs.
 9. **Settings & Attribution**: Active model storage management, model switching/deletion, theme switching, App Lock toggle & Lock App button, optional local Profile, and "Built by Sambeet Das" attribution (`Edged v1.0.0`).
 
 ## 4. Model Tiers Catalogue

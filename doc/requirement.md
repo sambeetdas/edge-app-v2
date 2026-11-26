@@ -16,7 +16,7 @@
 
 ### FR-3: Shell Navigation
 - **FR-3.1**: `Settings` is always visible (`MainShellScreen`).
-- **FR-3.2**: `Chats`, `Knowledge`, `Scan`, and `Skills` tabs unlock when a model is downloaded.
+- **FR-3.2**: `Chats`, `Knowledge`, `Scan`, and `Agents` tabs unlock when a model is downloaded.
 - **FR-3.3**: `/proactive` (`ProactiveScreen`) is accessible from the `Chats` AppBar.
 
 ### FR-4: AI Chat & Offline Voice Mode
@@ -25,9 +25,10 @@
 - **FR-4.3**: Trim conversation history to fit context budget and enrich the system prompt with live device info (`DeviceService.buildDeviceContextString`).
 - **FR-4.4**: Support on-device English Speech-to-Text (`speech_to_text` with `onDevice: true`), sentence-buffered local Text-to-Speech (`flutter_tts`), and real-time barge-in cancellation (`VoiceService`).
 
-### FR-5: Agent Skills
-- **FR-5.1**: Provide 6 built-in skills (`summarizer`, `translator`, `code_explainer`, `writing_assistant`, `grammar_fixer`, `brainstorm`).
-- **FR-5.2**: Support creating and deleting custom skills in `CustomSkillEntity` (SQLite).
+### FR-5: Unified Agents & Agent-to-Agent (A2A) Chaining
+- **FR-5.1**: Provide 12 predefined Agents: 6 automation/tool Agents (`scheduled_email`, `scheduled_whatsapp`, `rag_researcher`, `ocr_extractor`, `action_reminder`, `daily_briefing`) and 6 classic skill Agents (`summarizer`, `translator`, `code_explainer`, `writing_assistant`, `grammar_fixer`, `brainstorm`).
+- **FR-5.2**: Support creating and deleting custom Agents in `CustomAgentEntity` (SQLite) with selectable tools (`llm`, `rag`, `ocr`, `email`, `whatsapp`, `reminder`) and optional default A2A handoff (`NextAgentId`), while preserving legacy `CustomSkillEntity` rows.
+- **FR-5.3**: Support sequential A2A handoff chains (`AgentOrchestrator`, max 4 hops) persisted in `AgentRunEntity` / `AgentMessageEntity`, with scheduled Email (`mailto:`) and WhatsApp (`wa.me`) action notifications.
 
 ### FR-6: Offline Knowledge Base (RAG + Citations)
 - **FR-6.1**: Support `.txt`, `.md`, `.docx` (ZIP `word/document.xml` parsing), and `.pdf` (text extraction via `syncfusion_flutter_pdf`) up to 10 MB, streamed via `ACTION_OPEN_DOCUMENT` to a local cache file on Android.

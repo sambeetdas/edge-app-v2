@@ -4,10 +4,10 @@
 
 ```mermaid
 flowchart TB
-    UI["Presentation Layer (lib/features/)<br/>Auth · 5-Tab Shell (Chats, Knowledge, Scan, Skills, Settings) · /proactive"]
+    UI["Presentation Layer (lib/features/)<br/>5-Tab Shell (Chats, Knowledge, Scan, Agents, Settings) · /proactive"]
     PROV["State & DI (lib/providers/)<br/>Riverpod Providers · ensureModelLoadedFromWidget"]
-    ENG["AI & Multimodal Engine (lib/engine/)<br/>ChatEngine · ModelManager · VoiceService · VisionEngine · SkillsEngine"]
-    DATA["Data & Domain Services (lib/data/)<br/>AppDatabase (SQLite v3) · KnowledgeService · DocumentService · ProactiveService · AuthService · DeviceService"]
+    ENG["AI & Multimodal Engine (lib/engine/)<br/>ChatEngine · ModelManager · VoiceService · VisionEngine · AgentOrchestrator"]
+    DATA["Data & Domain Services (lib/data/)<br/>AppDatabase (SQLite v4) · AgentService · KnowledgeService · DocumentService · ProactiveService · AuthService · DeviceService"]
     NAT["Native & On-Device Runtimes<br/>llama_flutter_android · ML Kit OCR · speech_to_text · flutter_tts · workmanager · flutter_local_notifications · MainActivity.kt"]
 
     UI --> PROV
@@ -36,10 +36,12 @@ lib/
 │       ├── model_manager.dart        # Dio .part Range downloads, WakelockPlus, 99% orphan healing
 │       ├── voice_service.dart        # On-device English STT + sentence-buffered TTS + barge-in
 │       ├── vision_engine.dart        # Offline ML Kit Latin OCR -> ChatEngine Q&A
-│       └── skills_engine.dart        # 6 built-in offline productivity skills
+│       ├── agent_orchestrator.dart   # Sequential A2A handoffs + RAG/OCR/Email/WhatsApp/Reminder tools
+│       └── skills_engine.dart        # 6 classic skill definitions (folded into AgentService)
 ├── data/
-│   ├── database/app_database.dart    # sqflite edge_chat.db (version 3, 7 tables, onUpgrade + onOpen)
+│   ├── database/app_database.dart    # sqflite edge_chat.db (version 4, 10 tables, onUpgrade + onOpen)
 │   └── services/
+│       ├── agent_service.dart        # 12 predefined Agents + custom SQLite Agents + A2A message logs
 │       ├── auth_service.dart         # Phone biometric/PIN App Lock (local_auth) + optional local Profile
 │       ├── chat_history_service.dart # Sessions & messages CRUD
 │       ├── custom_skills_service.dart# User-authored SQLite skills CRUD
@@ -108,14 +110,14 @@ sequenceDiagram
 ---
 
 ## 5. Data & Persistence (`lib/data/`)
-- **SQLite (`edge_chat.db`, v3)** — guarded by `onCreate`, `onUpgrade`, and `onOpen` (`CREATE TABLE IF NOT EXISTS`):
-  - `ChatSessionEntity` (`Id`, `Title`, `CreatedAt`, `UpdatedAt`, `Summary`, `SummarizedUpToMessageId`)
-  - `ChatMessageEntity` (`Id`, `SessionId` indexed, `Role`, `Content`, `Timestamp`)
-  - `CustomSkillEntity` (`Id`, `Name`, `Description`, `Icon`, `SystemPrompt`, `InputPlaceholder`, `Category`, `CreatedAt`)
-  - `CustomGameEntity` (`Id`, `Name`, `Description`, `Icon`, `Category`, `SystemPrompt`, `StarterMessage`, `HowToPlay`, `CreatedAt`)
-  - `KnowledgeDocumentEntity` (`Id`, `FileName`, `FileSizeBytes`, `ChunkCount`, `CreatedAt`)
-  - `KnowledgeChunkEntity` (`Id`, `DocumentId` indexed, `FileName`, `ChunkIndex`, `Content`)
-  - `ProactiveReminderEntity` (`Id`, `Title`, `TriggerAt`, `IsCompleted`, `CreatedAt`)
+- **SQLite (`edge_chat.db`, v4)** — guarded by `onCreate`, `onUpgrade`, and `onOpen` (`CREATE TABLE IF NOT EXISTS`):
+  - `ChatSessionEntity`, `ChatMessageEntity` (indexed on `SessionId`)
+  - `CustomSkillEntity`, `CustomGameEntity`
+  - `KnowledgeDocumentEntity`, `KnowledgeChunkEntity` (indexed on `DocumentId`)
+  - `ProactiveReminderEntity`
+  - `CustomAgentEntity` (`Id`, `Name`, `Description`, `Icon`, `Category`, `SystemPrompt`, `InputPlaceholder`, `Tools`, `NextAgentId`, `CreatedAt`)
+  - `AgentRunEntity` (`Id`, `Title`, `CreatedAt`)
+  - `AgentMessageEntity` (`Id`, `RunId` indexed, `FromAgent`, `ToAgent`, `Content`, `ActionType`, `ActionPayload`, `CreatedAt`)
 - **Secure Storage**: `AuthService` stores `auth_app_lock_enabled`, `profile_name`, `profile_phone`, and `profile_email` locally in `FlutterSecureStorage`.
 
 ---

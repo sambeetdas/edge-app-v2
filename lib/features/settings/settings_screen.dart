@@ -161,7 +161,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Download an on-device model to unlock Chats, Knowledge, Scan, and Skills.',
+                          'Download an on-device model to unlock Chats, Knowledge, Scan, and Agents.',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -207,7 +207,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Capabilities: Chats · Scan OCR · Skills'
+                        'Capabilities: Chats · Scan OCR · Agents'
                         '${tier.supportsDocumentQa ? ' · Knowledge RAG' : ''}'
                         '${tier.supportsVision ? ' · Pixel Vision' : ''}',
                         style: theme.textTheme.bodySmall?.copyWith(
